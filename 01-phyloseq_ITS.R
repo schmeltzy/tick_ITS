@@ -1,4 +1,5 @@
-##ITS into phyloseq
+#Overview: bringing ITS ASV tables and taxonomy (and phylogenetic tree if you have it) into phyloseq
+
 library(phyloseq)
 library(ggplot2)
 library(readxl)
@@ -7,7 +8,7 @@ library(vegan)
 library(FSA)
 
 
-#call up taxa and otu table from dada2
+#call up taxa and asv table from dada2 output
 taxa <- readRDS("taxa_both.rds")
 seqtab.nochim <- readRDS("ASV_both.rds")
 #fitGTR <- readRDS("fitGTR.rds")
@@ -20,7 +21,7 @@ samdf <- as.data.frame(mapfile)
 theme_set(theme_bw())
 set.seed(123)
 
-#get rid of the weird stuff at the end of rownames
+#get rid of the extra stuff at the end of rownames
 rownames(seqtab.nochim) <- sub("\\_.*", "", rownames(seqtab.nochim))
 samples.out <- rownames(seqtab.nochim)
 rownames(samdf) <- samples.out
@@ -29,8 +30,8 @@ ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
                sample_data(samdf),
                tax_table(taxa))
 
-ps <- prune_samples(sample_names(ps) != "NonLibraryControl", ps) # Remove mock sample
-ps <- prune_samples(sample_names(ps) != "NonTemplateControl", ps) # Remove mock sample
+ps <- prune_samples(sample_names(ps) != "NonLibraryControl", ps) # Remove control sample
+ps <- prune_samples(sample_names(ps) != "NonTemplateControl", ps) # Remove control sample
 
 ##cleaning taxonomy table
 tax_table(ps)[, colnames(tax_table(ps))] <- gsub(tax_table(ps)[, colnames(tax_table(ps))],     pattern = "[a-z]__", replacement = "")
@@ -48,13 +49,14 @@ taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 
 
-#rarefaction curve to see if we need to drop samples
-asvdf <- as.data.frame(otu_table(ps))
-asv.rarecurve = rarecurve(asvdf, step = 100, label = T)
+#rarefaction curve to see if we need to drop samples or rarefy
+asvdf <- as.matrix(as.data.frame(otu_table(ps)))
+sort(sample_sums(ps))
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 1121), col = "blue") #1121 lowest # of reads after removing samples less than 1000
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 2008), col = "red") #would lose 20 samples and capture majority of diversity but not all
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 3004), col = "purple") #would lose 34 samples and capture all diversity
 
-
-#remove any samples with less than 1000 reads (sad)
-# Remove samples with less than MINREADS from phyloseq object
+#remove any samples with less than 1000 reads
 ps <- prune_samples(sample_sums(ps) >= 1000, ps) #154 samples remaining, lost 4
 ps
 
@@ -67,14 +69,14 @@ ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
 
 plot_ordination(ps.prop, ord.nmds.bray, color="Lifestage", shape ="Treatment", title="Bray NMDS", label = "Specimen_ID")
-#SBadultMale5fall looks really weird, will remove 
+#SBadultMale5fall looks really weird, may remove 
 #ps <- prune_samples(sample_names(ps) != "SBTadult5Mfall", ps) # Remove weird sample
 
 
-#save our friend for later in case we need it
+#save phyloseq object
 saveRDS(ps, "phyloseq_obj.rds")
 
-####let's subset to just look at ticks (not soil)
+###let's subset to just look at ticks (not soil)
 
 ticks <- subset_samples(ps, Species=="BLT")
 
@@ -82,7 +84,7 @@ asvdf_ticks <- as.data.frame(otu_table(ticks))
 asv.rarecurve.ticks = rarecurve(asvdf_ticks, step = 10, label = F)
 
 
-#### all ticks
+### all ticks
 #alphas
 plot_richness(ticks, x="Season", measures=c("Shannon"), color="Treatment")+
   facet_grid(~Lifestage)
