@@ -48,19 +48,42 @@ ps <- merge_phyloseq(ps, dna)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 
+## Plot sample library size 
+df <- as.data.frame(sample_data(ps)) 
+df$LibrarySize <- sample_sums(ps)
+df <- df[order(df$LibrarySize),]
+df$Index <- seq(nrow(df))
+plot_df <- ggplot(data=df, aes(x = Index, y = LibrarySize)) + geom_point()
+plot_df
 
 #rarefaction curve to see if we need to drop samples or rarefy
 asvdf <- as.matrix(as.data.frame(otu_table(ps)))
 sort(sample_sums(ps))
-asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 1121), col = "blue") #1121 lowest # of reads after removing samples less than 1000
-asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 2008), col = "red") #would lose 20 samples and capture majority of diversity but not all
-asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 3004), col = "purple") #would lose 34 samples and capture all diversity
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 1121, col = "blue"), col = "black") #1121 lowest # of reads after removing samples less than 1000
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 2008, col = "red"), col = "black") #would lose 20 samples and capture majority of diversity but not all
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 3004, col = "purple"), col = "black") #would lose 34 samples and capture almost all diversity
+
+#let's zoom in a bit
+asv.rarecurve = rarecurve(asvdf, step = 20, label = FALSE, xlim=c(0, 4000), abline(v= 1121, col = "blue"), col = "black")
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, xlim=c(0, 4000), abline(v= 2008, col = "red"), col = "black")
+asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, xlim=c(0, 4000), abline(v= 3004, col = "purple"), col = "black")
+
+# so if we choose to rarefy to 2008, we will lose 20 samples and will capture most of the diversity but not all.
 
 #remove any samples with less than 1000 reads
 ps <- prune_samples(sample_sums(ps) >= 1000, ps) #154 samples remaining, lost 4
 ps
 
-#visualize alpha diversity
+#check taxa table is still correct
+ps <- prune_taxa(taxa_sums(ps@otu_table) > 0, ps) # 1575 total taxa
+sum(sample_sums(ps)) # 1165175 total reads
+
+#save phyloseq object
+saveRDS(ps, "phyloseq_obj.rds")
+
+saveRDS(ps, here::here("output/og.ps.rds")) 
+
+#visualize alpha diversity just to make sure everything looks normal
 plot_richness(ps, x="Treatment", measures=c("Shannon", "Simpson"), color="Lifestage")
 
 
@@ -69,12 +92,10 @@ ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
 
 plot_ordination(ps.prop, ord.nmds.bray, color="Lifestage", shape ="Treatment", title="Bray NMDS", label = "Specimen_ID")
-#SBadultMale5fall looks really weird, may remove 
+#SBadultMale5fall looks really weird, might remove later after exploration
 #ps <- prune_samples(sample_names(ps) != "SBTadult5Mfall", ps) # Remove weird sample
 
 
-#save phyloseq object
-saveRDS(ps, "phyloseq_obj.rds")
 
 ###let's subset to just look at ticks (not soil)
 
