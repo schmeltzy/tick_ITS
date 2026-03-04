@@ -7,7 +7,6 @@ library(tidyverse)
 library(vegan)
 library(FSA)
 
-
 #call up taxa and asv table from dada2 output
 taxa <- readRDS("taxa_both.rds")
 seqtab.nochim <- readRDS("ASV_both.rds")
@@ -65,10 +64,10 @@ asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, abline(v= 3004, col 
 
 #let's zoom in a bit
 asv.rarecurve = rarecurve(asvdf, step = 20, label = FALSE, xlim=c(0, 4000), abline(v= 1121, col = "blue"), col = "black")
-asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, xlim=c(0, 4000), abline(v= 2008, col = "red"), col = "black")
-asv.rarecurve = rarecurve(asvdf, step = 100, label = FALSE, xlim=c(0, 4000), abline(v= 3004, col = "purple"), col = "black")
+asv.rarecurve = rarecurve(asvdf, step = 20, label = FALSE, xlim=c(0, 4000), abline(v= 2008, col = "red"), col = "black")
+asv.rarecurve = rarecurve(asvdf, step = 20, label = FALSE, xlim=c(0, 4000), abline(v= 3004, col = "purple"), col = "black")
 
-# so if we choose to rarefy to 2008, we will lose 20 samples and will capture most of the diversity but not all.
+# so if we choose to rarefy to 2008, we will lose 20 samples total and will capture most of the diversity but not all.
 
 #remove any samples with less than 1000 reads
 ps <- prune_samples(sample_sums(ps) >= 1000, ps) #154 samples remaining, lost 4
@@ -83,13 +82,33 @@ saveRDS(ps, "phyloseq_obj.rds")
 
 saveRDS(ps, here::here("output/og.ps.rds")) 
 
+
+## Let's see how rarefying goes and we can compare
+#can really only use this for observed richness estimates and not for beta diversity analyses
+#rarefy_even_depth automatically removes ASVs that become 0 in abundance
+ps.rare <- rarefy_even_depth(ps, sample.size = 2008, rngseed = 999) #97 ASVs removed, 16 samples removed
+
+ps.rare #1478 ASVs, 138 samples
+sum(sample_sums(ps.rare)) #277104
+sample_sums(ps.rare)
+rarefied_names <- sample_names(ps.rare)
+names <- sample_names(ps)
+write.table(rarefied_names, file = "rarefied_names.txt", sep = "\t")
+write.table(names, file = "full_names.txt", sep = "\t")
+
+summary(taxa_sums(ps.rare)) # minimum times a taxa appears: 1.0, 1st quartile: 9.0, median: 29.0, mean: 187.5     3rd quantile: 100.0 , max: 32418.0 
+
+saveRDS(ps.rare, here::here("output/ps.rare.rds"))
+
+
 #visualize alpha diversity just to make sure everything looks normal
 plot_richness(ps, x="Treatment", measures=c("Shannon", "Simpson"), color="Lifestage")
-
+plot_richness(ps.rare, x="Treatment", measures=c("Shannon", "Simpson"), color="Lifestage")
 
 # Transform data to proportions as appropriate for Bray-Curtis distances
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+
 
 plot_ordination(ps.prop, ord.nmds.bray, color="Lifestage", shape ="Treatment", title="Bray NMDS", label = "Specimen_ID")
 #SBadultMale5fall looks really weird, might remove later after exploration
@@ -100,9 +119,10 @@ plot_ordination(ps.prop, ord.nmds.bray, color="Lifestage", shape ="Treatment", t
 ###let's subset to just look at ticks (not soil)
 
 ticks <- subset_samples(ps, Species=="BLT")
+ticks.rare <- subset_samples(ps.rare, Species=="BLT")
 
 asvdf_ticks <- as.data.frame(otu_table(ticks))
-asv.rarecurve.ticks = rarecurve(asvdf_ticks, step = 10, label = F)
+asv.rarecurve.ticks = rarecurve(asvdf_ticks, step = 20, label = F, xlim= c(0, 2000))
 
 
 ### all ticks
@@ -134,11 +154,11 @@ ticks %>%                                           #phyloseq object
 sample_colors <- c("lightblue", "orchid","lightgreen","orange")
 
 #violin plot
-ticks %>%                                                              #phyloseq object
+tickplot <- ticks %>%                                                              #phyloseq object
   plot_richness(
     x = "Season",                                                    #compare diversity of datatype
     measures = c("Shannon")) +                              #choose diversity measures
-  geom_boxplot(aes(fill = Treatment), show.legend = TRUE )+             #make violin plot, set fill aes to sampletype
+  geom_boxplot(aes(fill = Treatment), show.legend = FALSE )+             #make violin plot, set fill aes to sampletype
   facet_wrap(~Lifestage+Sex)+
   theme_linedraw()+                                                     #change theme to classic
   xlab(NULL)+                                                           #no label on x-axis
@@ -149,8 +169,26 @@ ticks %>%                                                              #phyloseq
   scale_fill_manual(values = sample_colors)+                            #set fill colors
   theme(plot.title=element_text(size = 10, face = "bold", hjust = 0.5)) #change title size, face and position
 
+#and same plot with rarefied data
+rareplot <- ticks.rare %>%                                                              #phyloseq object
+  plot_richness(
+    x = "Season",                                                    #compare diversity of datatype
+    measures = c("Shannon")) +                              #choose diversity measures
+  geom_boxplot(aes(fill = Treatment), show.legend = FALSE )+             #make violin plot, set fill aes to sampletype
+  facet_wrap(~Lifestage+Sex)+
+  theme_linedraw()+                                                     #change theme to classic
+  xlab(NULL)+                                                           #no label on x-axis
+  theme(axis.text.y.left = element_text(size = 10),                     #adjust y-axis text
+        axis.text.x = element_text(size = 10, hjust = 0.5, vjust = 1, angle = 90),           #adjust x-axis label position
+        axis.title.y = element_text(size = 10))+                        #adjust y-axis title
+  theme(strip.text = element_text(face = "bold", size = 10))+           #adjust headings
+  scale_fill_manual(values = sample_colors)+                            #set fill colors
+  theme(plot.title=element_text(size = 10, face = "bold", hjust = 0.5)) #change title size, face and position
 
-alphadiv <- estimate_richness(ticks, measures = c("Shannon")) %>%
+##compare real quick using ggarrange
+ggarrange(tickplot,rareplot)
+
+alphadiv <- estimate_richness(ticks.rare, measures = c("Shannon")) %>%
   rownames_to_column(var = "Unique_Specimen_ID") %>%
   left_join(as.data.frame(sample_data(ticks)), by = "Unique_Specimen_ID") 
 
