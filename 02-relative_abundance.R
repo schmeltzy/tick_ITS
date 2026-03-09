@@ -28,7 +28,7 @@ ticks <- subset_samples(ps.rare, Type=="BLT")
 
 
 ## Transform to relative abundance ====
-ps.trans <- transform_sample_counts(ticks, function(OTU) OTU/sum(OTU))
+ps.trans <- transform_sample_counts(ticks, function(OTU) (OTU/sum(OTU)*100))
 
 #rename the NAs to higher taxa level
 # Fill in names for NA taxa, not including their rank
@@ -62,8 +62,8 @@ ps.top100 <- prune_samples(sample_sums(ps.top100@otu_table) > 0, ps.top100)
 plot.relAbund <- plot_bar(ps.top100, x="Sample", fill="Class") + 
   #facet_grid(vars(Habitat), scales = "free_x") + 
   scale_fill_manual(values = sample_colors) 
-plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
-  theme(axis.text.x = element_text(face = "bold", size = 6.5, angle = 90, hjust = 1), 
+plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1) + 
+  theme(axis.text.x = element_text(size = 6.5, angle = 90, hjust = 1), 
         axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("Sample") + ylab("Relative Abundance (%)") +
   labs(title = "Tick-associated mycobiome") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Class") 
 plot.relAbund
@@ -90,28 +90,71 @@ plot.relAbund
 ## Let's try to just look at some of the entomopathogens
 ## Subset into the 4 we know about (mostly)
 ps.gen <- tax_glom(ps.trans, taxrank = "Genus", NArm = FALSE)
-ps.pathogens <- subset_taxa(ps.trans, Genus == "Metarhizium" | 
+ps.pathogens <- subset_taxa(ps.gen, Genus == "Metarhizium" | 
               Genus == "Beauveria" | 
               Genus == "Lecanicillium" |
               Genus == "Cordyceps" )
 
 #trim samples to just get the ones with entos
-ps.pathogens <- prune_samples(sample_sums(ps.pathogens@otu_table) > 0, ps.pathogens)
+path.pruned <- prune_samples(sample_sums(ps.pathogens@otu_table) > 0, ps.pathogens)
 
-plot.entos <- plot_nested_bar(ps.pathogens, x="Lifestage", fill = "Genus") +
+plot.entos <- plot_bar(path.pruned, x="Lifestage", fill = "Genus") +
   facet_wrap(~Treatment) +
   geom_bar(stat="identity")+
   scale_fill_manual(values = sample_colors)
 plot.entos <- plot.entos + theme_bw(base_line_size = 1, base_rect_size = 1) + 
   theme(axis.text.x = element_text(face = "bold", size = 11.5, angle = 45, hjust = 1, vjust = 1), 
         axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("") + ylab("Relative Abundance (%)") +
-  labs(title = "Tick-associated entomopathogens") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Genus") 
+  labs(title = "Relative abundance of tick-associated entomopathogens in forested habitat") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Genus") 
 plot.entos
+ggplot2::ggsave(here::here("output/plot.entos.png"), plot.entos,
+                height = 447, width = 520, units = "mm",
+                scale = 0.5, dpi = 1000)
 
-#maybe we can make it nicer?
-plot_nested_bar(ps_obj = ps.pathogens,
-                top_level = "Genus",
-                nested_level = "Species",
-                palette = sample_colors)+
-  facet_grid(~Lifestage)
+#we don't have a lot of replication but we can see if we can do stats
+melt <- psmelt(ps.pathogens)
+melt %>%
+  select(Sample, Abundance, Treatment, Genus, Season, Sex, Habitat, Lifestage) -> melt
 
+## let's compare relative abundance of entomopathogens by Lifestage, Habitat, Treatment, Sex, Season
+
+wil_Season <- broom::tidy(wilcox.test(Abundance ~ Season, data = melt)) #sig
+wil_Season$var <- "season"
+
+kw_Treatment <- broom::tidy(kruskal.test(Abundance ~ Treatment, data = melt)) #overall NS but p = 0.06
+kw_Treatment$var <- "treatment"
+
+wil_Habitat <- broom::tidy(wilcox.test(Abundance ~ Habitat, data = melt)) #sig
+wil_Habitat$var <- "Habitat"
+
+kw_Sex <- broom::tidy(kruskal.test(Abundance ~ Sex, data = melt)) #NS
+kw_Sex$var <- "sex"
+
+kw_Lifestage <- broom::tidy(kruskal.test(Abundance ~ Lifestage, data = melt)) #sig
+kw_Lifestage$var <- "lifestage"
+dunn_Lifestage <- as.data.frame(dunn_test(Abundance ~ Lifestage, data = melt, p.adjust.method = "fdr")) # all vs. all sig
+dunn_Lifestage$var <- "lifestage"
+
+
+means.life <- melt %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Lifestage) %>%
+  arrange()
+means.season <- melt %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Season) %>%
+  arrange()
+means.hab <- melt %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Habitat) %>%
+  arrange()
+means.treatment<- melt %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Treatment) %>%
+  arrange()
+
+#save output
+rbind(wil_Season, wil_Habitat) -> wil_output
+write.csv(wil_output, here::here("output/wil_output.csv"))
+
+rbind(kw_Lifestage, kw_Sex, kw_Treatment) -> kw_output
+write.csv(kw_output, here::here("output/kw_output.csv"))
+
+rbind(dunn_Lifestage) -> dunn_output
+write.csv(dunn_output, here::here("output/dunn_output.csv"))
