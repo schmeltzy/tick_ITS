@@ -116,7 +116,13 @@ melt <- psmelt(ps.pathogens)
 melt %>%
   select(Sample, Abundance, Treatment, Genus, Season, Sex, Habitat, Lifestage) -> melt
 
-## let's compare relative abundance of entomopathogens by Lifestage, Habitat, Treatment, Sex, Season
+#take average relative abundance between lifestages in forested habitat
+melt %>%
+  filter(Habitat == "forested") %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Lifestage) %>%
+  arrange()
+
+## let's compare mean relative abundance of entomopathogens by Lifestage, Habitat, Treatment, Sex, Season
 
 wil_Season <- broom::tidy(wilcox.test(Abundance ~ Season, data = melt)) #sig
 wil_Season$var <- "season"
@@ -147,6 +153,17 @@ means.hab <- melt %>%
   arrange()
 means.treatment<- melt %>%
   summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Treatment) %>%
+  arrange()
+
+#total relative abundance by lifestage by treatment
+total.abund.life.mowed <- melt %>%
+  filter(Treatment == "mowed") %>%
+  summarise(total = sum(Abundance), .by = Lifestage) %>%
+  arrange()
+
+total.abund.life.unmowed <- melt %>%
+  filter(Treatment == "unmowed") %>%
+  summarise(total = sum(Abundance), .by = Lifestage) %>%
   arrange()
 
 #save output
