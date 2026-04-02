@@ -1,13 +1,21 @@
-#### beta diversity and ancom-bc
+##Overview: Beta diversity analyses
+#load necessary packages
+#beta diversity
 
-##ITS into phyloseq
 library(phyloseq)
 library(dada2)
 library(ggplot2)
 library(microbiome)
 library(vegan)
 
+#set seed
+set.seed(123)
+
+#load in unrarefied phyloseq object
 ps <- readRDS("phyloseq_obj.rds")
+
+#will be using Aitchinson distance to asses beta, so need to transform
+#using Euclidean distances
 
 #clr transform
 clr <- microbiome::transform(ps, 'clr')
