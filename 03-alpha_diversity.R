@@ -10,6 +10,7 @@ library(broom)
 library(tibble)
 library(emmeans)
 library(ggpubfigs)
+library(svglite)
 
 #set seed for reproducibility
 set.seed(123)
@@ -98,22 +99,27 @@ sig.df <- sig.df %>%
     formula = Shannon ~ Lifestage
   )
 
-sig.df$y.position[1] <- 3.7
-sig.df$y.position[2] <- 3.9
+sig.df$y.position[1] <- 0
+sig.df$y.position[2] <- 0
 sig.df$y.position[3] <- 3.5
-sig.df$y.position[4] <- 3.4
+sig.df$y.position[4] <- 3.5
 
+
+#add Habitat facet
+sig.df$Habitat[1] <- "forested"
+sig.df$Habitat[2] <- "forested"
+sig.df$Habitat[3] <- "open"
+sig.df$Habitat[4] <- "forested"
 
 #the x.positions are wrong? so need to manually input
-sig.df$xmin[1] <- 2.7
-sig.df$xmax[1] <- 3.1 
-sig.df$xmin[2] <- 2.7
-sig.df$xmax[2] <- 3.3
-sig.df$xmin[3] <- 2.7
-sig.df$xmax[3] <- 2.9
+#sig.df$xmin[1] <- 0
+#sig.df$xmax[1] <- 0 
+#sig.df$xmin[2] <- 0
+#sig.df$xmax[2] <- 0
+sig.df$xmin[3] <- 0.8
+sig.df$xmax[3] <- 1.2
 sig.df$xmin[4] <- 1.8
 sig.df$xmax[4] <- 2.2
-
 
 
 as.factor(alphadiv$Lifestage) -> alphadiv$Lifestage
@@ -121,13 +127,14 @@ as.factor(alphadiv$Treatment) -> alphadiv$Treatment
 as.factor(sig.df$group1) -> sig.df$group1
 as.factor(sig.df$group2) -> sig.df$group2
 
+#skip first two rows since we can't span facets
+plot.sig.df <- tail(sig.df, -2)
+
 
 plot.alpha <-  ggplot(alphadiv, aes(x = Lifestage, y = Shannon, color=Treatment)) + 
   geom_boxplot(lwd = 1.1, outlier.colour = "NA") + 
   scale_color_manual(values = friendly_pal("nickel_five"))+
-  stat_pvalue_manual(sig.df, label = "p.adj.signif", hide.ns = TRUE, inherit.aes = TRUE, size = 6)
-
-plot.alpha <- plot.alpha + 
+  stat_pvalue_manual(plot.sig.df, label = "p.adj.signif", hide.ns = TRUE, inherit.aes = FALSE, size = 6)+
   geom_point(aes(color=Treatment), size = 1.5, alpha = 0.5, 
            position = position_jitterdodge(jitter.width = 0.1)) + 
   theme_bw(base_line_size = 1.5, base_rect_size = 1.75) +
@@ -140,6 +147,10 @@ plot.alpha <- plot.alpha +
   facet_grid(~Habitat, scales = "free", space = "free")+
   theme(strip.text = element_text(size = 12, face = "bold"))+
   labs(color = "Treatment") + xlab("Lifestage")
-#+ stat_pvalue_manual(sig.df, label = "p.adj.signif", hide.ns = TRUE, size = 6)
 plot.alpha
+
+#save plot
+ggplot2::ggsave(here::here("output/alphas.plot.png"), plot.alpha,
+                height = 300, width = 500, units = "mm",
+                scale = 0.5, dpi = 1000)
 
