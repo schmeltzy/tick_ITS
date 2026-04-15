@@ -6,8 +6,10 @@ library(phyloseq)
 library(microViz)
 library(dplyr)
 library(ggplot2)
+library(ggpubfigs)
 library(vegan)
 library(pairwiseAdonis)
+library(rstatix)
 
 #set seed
 set.seed(123)
@@ -23,49 +25,242 @@ open <- subset_samples(ticks, Habitat=="open")
 
 # does habitat, treatment, lifestage, season, or sex affect beta diversity?
 #use aitchison distance for beta (clr transform followed by euclidean distance matrix)
-aitch <- dist_calc(ticks, dist = "aitchison")
+aitch <- dist_calc(ticks, dist = "robust.aitchison")
 aitch.dist <- dist_get(aitch)
+
 
 #get sample data from the matrix just to make it easier
 aitch.sampledf <- data.frame(sample_data(aitch))
 
-#permanova
+##permanova
 adonis_habitat <- broom::tidy(adonis2(aitch.dist ~ Habitat, data = aitch.sampledf, by = "terms", perm = 999))  
 #habitat p = 0.001 sig
 adonis_habitat$Comparison <- "all"
 
+adonis_treatment <- broom::tidy(adonis2(aitch.dist ~ Treatment, data = aitch.sampledf, by = "terms", perm = 999))  
+#p = 0.001 sig
+adonis_treatment$Comparison <- "all"
 
-#forested
-aitch.forest <- dist_calc(forest, dist = "aitchison")
+adonis_lifestage <- broom::tidy(adonis2(aitch.dist ~ Lifestage, data = aitch.sampledf, by = "terms", perm = 999))  
+#p = 0.001 sig
+adonis_lifestage$Comparison <- "all"
+
+adonis_season <- broom::tidy(adonis2(aitch.dist ~ Season, data = aitch.sampledf, by = "terms", perm = 999))  
+#p = 0.001 sig
+adonis_season$Comparison <- "all"
+
+adonis_sex <- broom::tidy(adonis2(aitch.dist ~ Sex, data = aitch.sampledf, na.action = na.omit, by = "terms", perm = 999))  
+# p = 0.001 sig
+adonis_sex$Comparison <- "all"
+
+rbind(adonis_habitat, adonis_treatment, adonis_season, adonis_lifestage, adonis_sex) -> adonis.all
+write.csv(adonis.all, here::here("output/adonis_all.csv"))
+
+
+#pairwise overall
+pair.adonis.treat <- pairwise.adonis(aitch.dist, aitch.sampledf$Treatment, p.adjust.m = "fdr", perm = 999) 
+pair.adonis.treat$Comparison <- "Treatment"
+
+pair.adonis.lifestage <- pairwise.adonis(aitch.dist, aitch.sampledf$Lifestage, p.adjust.m = "fdr", perm = 999) 
+pair.adonis.lifestage$Comparison <- "Lifestage"
+
+#save overall pairwise results
+rbind(pair.adonis.treat, pair.adonis.lifestage) -> adonis.pairwise
+write.csv(adonis.pairwise, here::here("output/adonis_pairwise.csv"))
+
+
+##forested subset
+aitch.forest <- dist_calc(forest, dist = "robust.aitchison")
 aitch.dist.forest <- dist_get(aitch.forest)
 
 #get sample data from the matrix just to make it easier
 forest.sampledf <- data.frame(sample_data(forest))
 
 
-adonis_treatment <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment, data = forest.sampledf, by = "terms", perm = 999))
+forest_treatment <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment, data = forest.sampledf, by = "terms", perm = 999))
 #p = 0.001 sig
-adonis_treatment$Comparison <- "forested"
+forest_treatment$Comparison <- "forested"
 
-adonis_season <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Season, data = forest.sampledf, by = "terms", perm = 999))
+forest_season <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Season, data = forest.sampledf, by = "terms", perm = 999))
 #p = 0.001 sig
-adonis_season$Comparison <- "forested"
+forest_season$Comparison <- "forested"
 
-adonis_lifestage <- broom::tidy(adonis2(aitch.dist.forest ~ Lifestage, data = forest.sampledf, by = "terms", perm = 999))
+forest_lifestage <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Lifestage, data = forest.sampledf, by = "terms", perm = 999))
 #p = 0.001 sig
-adonis_lifestage$Comparison <- "forested"
+forest_lifestage$Comparison <- "forested"
 
 #need to remove NAs for sex differences
-adonis_sex <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Sex, data = forest.sampledf, na.action = na.omit, by = "terms", perm = 999))  
-adonis_sex$Comparison <- "Sex" #NS
+forest_sex <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Sex, data = forest.sampledf, na.action = na.omit, by = "terms", perm = 999))  
+forest_sex$Comparison <- "forested" #NS
 
-rbind(adonis_habitat, adonis_treatment, adonis_season, adonis_lifestage, adonis_sex) -> adonis.all
-write.csv(adonis_forest, here::here("output/adonis_forest.csv"))
+rbind(forest_treatment, forest_season, forest_lifestage, forest_sex) -> adonis.forest
+write.csv(adonis.forest, here::here("output/adonis_forest.csv"))
 
-## Pairwise adonis 
-#pair.adonis.treat <- pairwise.adonis(aitch.dist.forest, forest.sampledf$Treatment, p.adjust.m = "fdr", perm = 999) 
-#pair.adonis.treat$Comparison <- "forested"
-
-pair.adonis.life <- pairwise.adonis(aitch.dist.forest, forest.sampledf$Lifestage, p.adjust.m = "fdr", perm = 999) 
+## Pairwise adonis for multi-level comparisons
+pair.forest.life <- pairwise.adonis(aitch.dist.forest, forest.sampledf$Lifestage, p.adjust.m = "fdr", perm = 999) 
 # adult vs nymph sig diff
-pair.adonis.life$Comparison <- "forest"
+pair.forest.life$Comparison <- "forest"
+
+write.csv(pair.forest.life, here::here("output/pairwise_forest.csv"))
+
+
+##adonis on open understory subset
+aitch.open <- dist_calc(open, dist = "robust.aitchison")
+aitch.dist.open <- dist_get(aitch.open)
+
+#get sample data from the matrix just to make it easier
+open.sampledf <- data.frame(sample_data(open))
+
+open_treatment <- broom::tidy(adonis2(aitch.dist.open ~ Treatment, data = open.sampledf, by = "terms", perm = 999))
+#p = 0.001 sig
+open_treatment$Comparison <- "open"
+
+open_season <- broom::tidy(adonis2(aitch.dist.open ~ Treatment / Season, data = open.sampledf, by = "terms", perm = 999))
+#p = 0.001 sig
+open_season$Comparison <- "open"
+
+#need to remove NAs for sex differences
+open_sex <- broom::tidy(adonis2(aitch.dist.open ~ Treatment / Sex, data = open.sampledf, na.action = na.omit, by = "terms", perm = 999))  
+#p = 0.03 sig
+open_sex$Comparison <- "open" 
+
+rbind(open_treatment, open_season, open_sex) -> adonis.open
+write.csv(adonis.open, here::here("output/adonis_open.csv"))
+
+
+##make some plots
+#robust clr (same as first step of robust.aitchison) for PCA ordination
+
+#all ticks
+rclr <- tax_transform(ticks, trans = "rclr") %>%
+  ord_calc(method = "PCA")
+
+#make sure things are in order
+rclr@sam_data$Lifestage <- factor(rclr@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
+rclr@sam_data$Treatment <- factor(rclr@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+
+
+pca.all <- rclr %>%
+  ord_plot( 
+    colour = "Treatment",
+    shape = "Habitat",
+    plot_taxa = FALSE, 
+    auto_caption = NA 
+  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("nickel_five")) +
+  theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
+  theme(axis.text = element_text(face = "bold", size = 14),
+        axis.title = element_text(face = "bold", size = 14), 
+        title = element_text(face = "bold")) +
+  theme(strip.text = element_text(face = "bold", size = 14)) +
+  guides(color = guide_legend(title = "Treatment")) + theme(legend.position = "right")
+# facet_wrap(~Lifestage)
+# + theme(legend.position = c(0.8, 0.08)) + theme(legend.key.size = unit(1, "mm")) +
+pca.all
+
+
+##separate by habitat
+#forested
+rclr.forest <- tax_transform(forest, trans = "rclr") %>%
+  ord_calc(method = "PCA")
+
+#make sure things are in order
+rclr.forest@sam_data$Lifestage <- factor(rclr.forest@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
+rclr.forest@sam_data$Treatment <- factor(rclr.forest@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+
+pca.forest <- rclr.forest %>%
+  ord_plot(
+    shape = "Season",
+    colour = "Lifestage",
+    plot_taxa = FALSE, 
+    auto_caption = NA 
+  ) + stat_ellipse(aes(group = Lifestage, color = Lifestage), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("retro_four")) +
+  theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
+  theme(axis.text = element_text(face = "bold", size = 14),
+        axis.title = element_text(face = "bold", size = 14), 
+        title = element_text(face = "bold")) +
+  theme(strip.text = element_text(face = "bold", size = 14)) +
+  guides(color = guide_legend(title = "Lifestage")) + theme(legend.position = "right")
+ #facet_wrap(~Season)
+pca.forest
+
+
+
+#open
+rclr.open <- tax_transform(open, trans = "rclr") %>%
+  ord_calc(method = "PCA")
+
+#make sure things are in order
+rclr.open@sam_data$Lifestage <- factor(rclr.open@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
+rclr.open@sam_data$Treatment <- factor(rclr.open@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+
+pca.open <- rclr.open %>%
+  ord_plot(
+    shape = "Treatment",
+    colour = "Season",
+    plot_taxa = FALSE, 
+    auto_caption = NA 
+  ) + stat_ellipse(aes(group = Season, color = Season), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("retro_four")) +
+  theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
+  theme(axis.text = element_text(face = "bold", size = 14),
+        axis.title = element_text(face = "bold", size = 14), 
+        title = element_text(face = "bold")) +
+  theme(strip.text = element_text(face = "bold", size = 14)) +
+  guides(color = guide_legend(title = "Season")) + theme(legend.position = "right")
+# facet_wrap(~Lifestage)
+pca.open
+
+
+
+##calculate beta dispersion
+#habitat
+disp_habitat <- betadisper(aitch.dist, aitch.sampledf$Habitat, bias.adjust = TRUE, type = "centroid")
+broom::tidy(anova(disp_habitat)) #disp not sig diff across habitat (p=0.854)
+stats_habitat <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Habitat, type = "centroid", 
+                                                         bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_habitat <- add_significance(stats_habitat, p.col = "x")
+stats_habitat$comparisons <- "Habitat"
+
+#Life
+disp_life <- betadisper(aitch.dist, aitch.sampledf$Lifestage, bias.adjust = TRUE, type = "centroid")
+broom::tidy(anova(disp_life)) #disp not sig diff across life (p=0.133)
+stats_life <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Lifestage, type = "centroid", 
+                                                           bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_life <- add_significance(stats_life, p.col = "x")
+stats_life$comparisons <- "Lifestage"
+
+#treatment
+disp_treatment <- betadisper(aitch.dist, aitch.sampledf$Treatment, bias.adjust = TRUE, type = "centroid")
+broom::tidy(anova(disp_treatment)) #sig across treatment (p=0.0304)
+stats_treatment <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Treatment, type = "centroid", 
+                                                             bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_treatment <- add_significance(stats_treatment, p.col = "x")
+stats_treatment$comparisons <- "Treatment"
+
+#season
+disp_season <- betadisper(aitch.dist, aitch.sampledf$Season, bias.adjust = TRUE, type = "centroid")
+broom::tidy(anova(disp_season)) #sig across season (p=0.000227)
+stats_season <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Season, type = "centroid", 
+                                                             bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_season <- add_significance(stats_season, p.col = "x")
+stats_season$comparisons <- "Season"
+
+#sex
+disp_sex <- betadisper(aitch.dist, aitch.sampledf$Sex, bias.adjust = TRUE, type = "centroid")
+broom::tidy(anova(disp_sex)) #sig across sex (p=0.761)
+stats_sex <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Sex, type = "centroid", 
+                                                          bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_sex <- add_significance(stats_sex, p.col = "x")
+stats_sex$comparisons <- "Sex"
+
+#combine dispersion results
+stats_all <- rbind(stats_habitat, stats_life, stats_season,stats_sex, stats_treatment)
+colnames(stats_all) <- c("comparison","p.adj","p.adj.signif","variable")
+
+##within habitat dispersion for significant main effects (just season)
+##forested season
+disp_forest_season <- betadisper(aitch.dist.forest, forest.sampledf$Season, bias.adjust = TRUE, type = "centroid")
+stats_forest_season <- broom::tidy(anova(disp_forest_season)) #disp still sig diff across season (p=0.002)
+
+##open season
+disp_open_season <- betadisper(aitch.dist.open, open.sampledf$Season, bias.adjust = TRUE, type = "centroid")
+stats_open_season <- broom::tidy(anova(disp_open_season)) #disp still sig diff across season (p=8.51E-06)
