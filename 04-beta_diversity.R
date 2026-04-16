@@ -10,6 +10,7 @@ library(ggpubfigs)
 library(vegan)
 library(pairwiseAdonis)
 library(rstatix)
+library(ggpubr)
 
 #set seed
 set.seed(123)
@@ -234,6 +235,9 @@ stats_habitat <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sam
 stats_habitat <- add_significance(stats_habitat, p.col = "x")
 stats_habitat$comparisons <- "Habitat"
 
+stats_habitat$group1 <- sapply(strsplit(stats_habitat$names, "-"), `[`,1)
+stats_habitat$group2 <- sapply(strsplit(stats_habitat$names, "-"), `[`,2)
+
 #Life
 disp_life <- betadisper(aitch.dist, aitch.sampledf$Lifestage, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_life)) #disp not sig diff across life (p=0.133)
@@ -241,6 +245,9 @@ stats_life <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sample
                                                            bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
 stats_life <- add_significance(stats_life, p.col = "x")
 stats_life$comparisons <- "Lifestage"
+
+stats_life$group1 <- sapply(strsplit(stats_life$names, "-"), `[`,1)
+stats_life$group2 <- sapply(strsplit(stats_life$names, "-"), `[`,2)
 
 #treatment
 disp_treatment <- betadisper(aitch.dist, aitch.sampledf$Treatment, bias.adjust = TRUE, type = "centroid")
@@ -250,6 +257,9 @@ stats_treatment <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.s
 stats_treatment <- add_significance(stats_treatment, p.col = "x")
 stats_treatment$comparisons <- "Treatment"
 
+stats_treatment$group1 <- sapply(strsplit(stats_treatment$names, "-"), `[`,1)
+stats_treatment$group2 <- sapply(strsplit(stats_treatment$names, "-"), `[`,2)
+
 #season
 disp_season <- betadisper(aitch.dist, aitch.sampledf$Season, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_season)) #sig across season (p=0.000227)
@@ -257,6 +267,9 @@ stats_season <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.samp
                                                              bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
 stats_season <- add_significance(stats_season, p.col = "x")
 stats_season$comparisons <- "Season"
+
+stats_season$group1 <- sapply(strsplit(stats_season$names, "-"), `[`,1)
+stats_season$group2 <- sapply(strsplit(stats_season$names, "-"), `[`,2)
 
 #sex
 disp_sex <- betadisper(aitch.dist, aitch.sampledf$Sex, bias.adjust = TRUE, type = "centroid")
@@ -266,11 +279,14 @@ stats_sex <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampled
 stats_sex <- add_significance(stats_sex, p.col = "x")
 stats_sex$comparisons <- "Sex"
 
+stats_sex$group1 <- sapply(strsplit(stats_sex$names, "-"), `[`,1)
+stats_sex$group2 <- sapply(strsplit(stats_sex$names, "-"), `[`,2)
+
 #combine dispersion results
 
 stats_all <- rbind(stats_habitat, stats_life, stats_season,stats_sex, stats_treatment)
-colnames(stats_all) <- c("comparison","p.adj","p.adj.signif","variable")
-
+colnames(stats_all) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
+stats_all$y.position <- 22
 
 ##within habitat dispersion for significant main effects (just season)
 ##forested season
@@ -312,6 +328,13 @@ disp_df$Treatment <- paste0(aitch.sampledf$Treatment)
 disp_df$Lifestage <- factor(disp_df$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
 disp_df$Treatment <- factor(disp_df$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
 
+#set y positions for significance
+#stats_all[9,]$y.position <- 22
+
+
+#do disp treatment first to match betas
+colnames(stats_treatment) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
+stats_treatment$y.position <- 22
 
 plot_disp <-  ggplot(disp_df, aes(x = Treatment, y = distances, color = Treatment))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
@@ -322,10 +345,7 @@ plot_disp <- plot_disp + theme(axis.text = element_text(face = "bold", size = 14
                                axis.title = element_text(face = "bold", size = 14), 
                                title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))
-plot_disp
-
-#+
- # stat_pvalue_manual(disp_stats_df, label = "p.adj.signif", hide.ns = TRUE, size = 6) + 
+  guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))+
+stat_pvalue_manual(stats_treatment, label = "p.adj.signif", hide.ns = TRUE, size = 6)
   #theme(legend.position = c(0.85, 0.9)) + theme(legend.key.size = unit(1, "mm"))
-#+ facet_grid(~factor(Location, levels=c('North', 'East', 'West'))) 
+  plot_disp
