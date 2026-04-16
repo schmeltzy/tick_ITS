@@ -222,7 +222,9 @@ pca.open <- rclr.open %>%
 pca.open
 
 
+#=================================
 
+  
 ##calculate beta dispersion
 #habitat
 disp_habitat <- betadisper(aitch.dist, aitch.sampledf$Habitat, bias.adjust = TRUE, type = "centroid")
@@ -264,6 +266,11 @@ stats_sex <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampled
 stats_sex <- add_significance(stats_sex, p.col = "x")
 stats_sex$comparisons <- "Sex"
 
+#combine dispersion results
+
+stats_all <- rbind(stats_habitat, stats_life, stats_season,stats_sex, stats_treatment)
+colnames(stats_all) <- c("comparison","p.adj","p.adj.signif","variable")
+
 
 ##within habitat dispersion for significant main effects (just season)
 ##forested season
@@ -284,5 +291,41 @@ stats_open_season$comparisons <- "open"
 
 
 #combine dispersion results
-stats_all <- rbind(stats_habitat, stats_life, stats_season,stats_sex, stats_treatment, stats_forest_season, stats_open_season)
-colnames(stats_all) <- c("comparison","p.adj","p.adj.signif","variable")
+stats_habitat <- rbind(stats_forest_season, stats_open_season)
+colnames(stats_habitat) <- c("comparison","p.adj","p.adj.signif","variable")
+
+write.csv(stats_all, here::here("output/dispersion_all_stats.csv"))
+write.csv(stats_habitat, here::here("output/dispersion_habitat_stats.csv"))
+
+
+#plot dispersion
+#get dispersion distance dfs
+disp_df <- as.data.frame(disp_all$distances)
+colnames(disp_df) <- c("distances")
+disp_df$Habitat <- paste0(aitch.sampledf$Habitat)
+disp_df$Season <- paste0(aitch.sampledf$Season)
+disp_df$Lifestage <- paste0(aitch.sampledf$Lifestage)
+disp_df$Sex <- paste0(aitch.sampledf$Sex)
+disp_df$Treatment <- paste0(aitch.sampledf$Treatment)
+
+#get everything in order again
+disp_df$Lifestage <- factor(disp_df$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
+disp_df$Treatment <- factor(disp_df$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+
+
+plot_disp <-  ggplot(disp_df, aes(x = Treatment, y = distances, color = Treatment))  + 
+  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+
+plot_disp <- plot_disp + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
+plot_disp <- plot_disp + theme(axis.text = element_text(face = "bold", size = 14), 
+                               axis.title = element_text(face = "bold", size = 14), 
+                               title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                               axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+  guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))
+plot_disp
+
+#+
+ # stat_pvalue_manual(disp_stats_df, label = "p.adj.signif", hide.ns = TRUE, size = 6) + 
+  #theme(legend.position = c(0.85, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+#+ facet_grid(~factor(Location, levels=c('North', 'East', 'West'))) 
