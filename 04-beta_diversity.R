@@ -412,6 +412,23 @@ pca.open <- pca.open +
   )
 pca.open
 
+##save our individual plots
+ggplot2::ggsave(here::here("output/betas_all.png"), pca.all,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
+ggplot2::ggsave(here::here("output/betas_forest.life.png"), pca.forest.life,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
+ggplot2::ggsave(here::here("output/betas_forest.season.png"), pca.forest.season,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
+ggplot2::ggsave(here::here("output/betas_open.png"), pca.open,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
 
 #=================================
 
@@ -522,6 +539,18 @@ write.csv(stats_habitat, here::here("output/dispersion_habitat_stats.csv"))
 
 stats_habitat$y.position <- 23
 
+#and for open_treatment
+disp_open_treat <- betadisper(aitch.dist.open, open.sampledf$Treatment, bias.adjust = TRUE, type = "centroid")
+stats_open_treat <- broom::tidy(anova(disp_open_treat)) 
+stats_open_treat <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist.open, open.sampledf$Treatment, type = "centroid", 
+                                                               bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
+stats_open_treat <- add_significance(stats_open_treat, p.col = "x")
+stats_open_treat$comparisons <- "open"
+
+stats_open_treat$group1 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,1)
+stats_open_treat$group2 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,2)
+
+
 #plot dispersion
 #get dispersion distance dfs
 disp_df <- as.data.frame(disp_all$distances)
@@ -563,15 +592,16 @@ colnames(stats_life) <- c("comparison","p.adj","p.adj.signif","variable","group1
 stats_life$y.position <- 22
 
 #plot lifestage disp
-plot_disp_life <-  ggplot(disp_df, aes(x = Lifestage, y = distances, color = Lifestage))  + 
+plot_disp_life <-  ggplot(disp_df_forested, aes(x = Lifestage, y = distances, color = Lifestage))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
 plot_disp_life <- plot_disp_life + geom_point(aes(color = Lifestage), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("retro_four"))
 plot_disp_life <- plot_disp_life + theme(axis.text = element_text(face = "bold", size = 14), 
-                                             axis.title = element_text(face = "bold", size = 14), 
-                                             title = element_text(face = "bold"), axis.title.x = element_blank(), 
-                                             axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+                                         axis.title = element_text(face = "bold", size = 14), 
+                                         title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                         axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
+ # labs(title = "Forested")+
   guides(color = guide_legend(title = "Lifestage")) + theme(strip.text = element_text(face = "bold", size = 14))+
   stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
   theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
@@ -584,19 +614,21 @@ stats_season$y.position <- 23
 
 #forested first
 colnames(stats_forest_season) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
-stats_forest_season$y.position <- 23
+stats_forest_season$y.position <- 22
+
+disp_df_forested <- subset(disp_df, Habitat == "forested")
 
 #then plot
-plot_disp_season <-  ggplot(disp_df, aes(x = Season, y = distances, color = Season))  + 
+plot_disp_season <-  ggplot(disp_df_forested, aes(x = Season, y = distances, color = Season))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
 plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
 plot_disp_forest_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
-                                                  axis.title = element_text(face = "bold", size = 14), 
-                                                  title = element_text(face = "bold"), axis.title.x = element_blank(),
-                                                  axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  labs(title = "Forested")+
+                                                    axis.title = element_text(face = "bold", size = 14), 
+                                                    title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                                    axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
+#  labs(title = "Forested")+
   guides(color = guide_legend(title = "Season")) + theme(strip.text = element_text(face = "bold", size = 14))+
   stat_pvalue_manual(stats_forest_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
   theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
@@ -606,20 +638,79 @@ plot_disp_forest_season
 #then open season
 colnames(stats_open_season) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
 stats_open_season$y.position <- 23
+
+disp_df_open <- subset(disp_df, Habitat == "open")
   
 #then plot
-plot_disp_season <-  ggplot(disp_df, aes(x = Season, y = distances, color = Season))  + 
+plot_disp_season <-  ggplot(disp_df_open, aes(x = Season, y = distances, color = Season))  + 
     geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
   
 plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
     ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
 plot_disp_open_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
                                           axis.title = element_text(face = "bold", size = 14), 
-                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
-                                          axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  labs(title = "Open")+
+                                          title = element_text(face = "bold"), axis.title.x = element_text(face = "bold", size = 14), 
+                                          axis.text.x = element_text(face = "bold", size = 14), axis.ticks.x = element_blank()) + 
+ # labs(title = "Open")+
 guides(color = guide_legend(title = "Season")) + theme(strip.text = element_text(face = "bold", size = 14))+
 stat_pvalue_manual(stats_open_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
 theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
 plot_disp_open_season
 
+
+#then open treatment
+colnames(stats_open_treat) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
+stats_open_treat$y.position <- 23
+
+#then plot
+disp_df_open <- subset(disp_df, Habitat == "open")
+
+plot_disp_treat <-  ggplot(disp_df_open, aes(x = Treatment, y = distances, color = Treatment))  + 
+  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+
+plot_disp_treat <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
+plot_disp_open_treat <- plot_disp_treat + theme(axis.text = element_text(face = "bold", size = 14), 
+                                                  axis.title = element_text(face = "bold", size = 14), 
+                                                  title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                                  axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
+ # labs(title = "Open")+
+  guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))+
+ # stat_pvalue_manual(stats_open_treat, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+plot_disp_open_treat
+
+
+##figure out how we want to arrange our plots
+ggarrange(pca.all, plot_disp_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_all
+ggplot2::ggsave(here::here("output/pca_disp_all.png"), pca_disp_all,
+                height = 450, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000) #this is done
+
+
+pca_disp_forest_life <- ggarrange(pca.forest.life, plot_disp_life, nrow = 2, ncol = 1, common.legend = TRUE, legend = "left")
+pca_disp_forest_life <-  annotate_figure(
+  pca_disp_forest_life,
+  top = text_grob("Forested", face = "bold", size = 14)
+)
+ggplot2::ggsave(here::here("output/pca_disp_forest_life.png"), pca_disp_forest_life,
+                height = 450, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000) #a and b
+
+ggarrange(pca.forest.season, plot_disp_season, nrow = 2, ncol = 1, common.legend = TRUE, legend = "left") -> pca_disp_forest_season
+plot(pca_disp_forest_season)
+ggplot2::ggsave(here::here("output/pca_disp_forest_season.png"), pca_disp_forest_season,
+                height = 450, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000) #c and d
+
+ggarrange(pca.open, plot_disp_open_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_open_treat
+pca_disp_open_treat <-  annotate_figure(
+  pca_disp_open_treat,
+  top = text_grob("Open", face = "bold", size = 14)
+)
+ggplot2::ggsave(here::here("output/pca_disp_open_treat.png"), pca_disp_open_treat,
+                height = 450, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000) #e and f
+
+pca_dispersion_combo <- ggarrange(pca_disp_forest_life, pca_disp_forest_season, pca_disp_open_treat, nrow = 3, ncol = 1, common.legend = FALSE)
+plot(pca_dispersion_combo)
