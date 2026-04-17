@@ -35,23 +35,18 @@ aitch.sampledf <- data.frame(sample_data(aitch))
 
 ##permanova
 adonis_habitat <- broom::tidy(adonis2(aitch.dist ~ Habitat, data = aitch.sampledf, by = "terms", perm = 999))  
-#habitat p = 0.001 sig
 adonis_habitat$Comparison <- "all"
 
 adonis_treatment <- broom::tidy(adonis2(aitch.dist ~ Treatment, data = aitch.sampledf, by = "terms", perm = 999))  
-#p = 0.001 sig
 adonis_treatment$Comparison <- "all"
 
 adonis_lifestage <- broom::tidy(adonis2(aitch.dist ~ Lifestage, data = aitch.sampledf, by = "terms", perm = 999))  
-#p = 0.001 sig
 adonis_lifestage$Comparison <- "all"
 
 adonis_season <- broom::tidy(adonis2(aitch.dist ~ Season, data = aitch.sampledf, by = "terms", perm = 999))  
-#p = 0.001 sig
 adonis_season$Comparison <- "all"
 
 adonis_sex <- broom::tidy(adonis2(aitch.dist ~ Sex, data = aitch.sampledf, na.action = na.omit, by = "terms", perm = 999))  
-# p = 0.001 sig
 adonis_sex$Comparison <- "all"
 
 rbind(adonis_habitat, adonis_treatment, adonis_season, adonis_lifestage, adonis_sex) -> adonis.all
@@ -82,15 +77,12 @@ forest.sampledf <- data.frame(sample_data(forest))
 
 
 forest_treatment <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment, data = forest.sampledf, by = "terms", perm = 999))
-#p = 0.001 sig
 forest_treatment$Comparison <- "forested"
 
 forest_season <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Season, data = forest.sampledf, by = "terms", perm = 999))
-#p = 0.001 sig
 forest_season$Comparison <- "forested"
 
 forest_lifestage <- broom::tidy(adonis2(aitch.dist.forest ~ Treatment / Lifestage, data = forest.sampledf, by = "terms", perm = 999))
-#p = 0.001 sig
 forest_lifestage$Comparison <- "forested"
 
 #need to remove NAs for sex differences
@@ -120,11 +112,9 @@ aitch.dist.open <- dist_get(aitch.open)
 open.sampledf <- data.frame(sample_data(open))
 
 open_treatment <- broom::tidy(adonis2(aitch.dist.open ~ Treatment, data = open.sampledf, by = "terms", perm = 999))
-#p = 0.001 sig
 open_treatment$Comparison <- "open"
 
 open_season <- broom::tidy(adonis2(aitch.dist.open ~ Treatment / Season, data = open.sampledf, by = "terms", perm = 999))
-#p = 0.001 sig
 open_season$Comparison <- "open"
 
 #need to remove NAs for sex differences
@@ -170,6 +160,52 @@ pca.all <- rclr %>%
 # + theme(legend.position = c(0.8, 0.08)) + theme(legend.key.size = unit(1, "mm")) +
 pca.all
 
+##overlay dispersion vectors
+#overlay forest dispersion vectors
+# 1) Extract plotted coordinates (site scores) with the SAME scaling and axes
+scores_mat.all <- vegan::scores(
+  ord_get(rclr),      # ordination object from psExtra
+  display = "sites",
+  choices = 1:2,             # match ord_plot axes
+  scaling = 2                # match ord_plot default scaling
+)                            # vegan::scores is the recommended accessor for coordinates
+
+scores_df.all <- tibble(
+  .sample_name = rownames(scores_mat.all),
+  Axis1 = scores_mat.all[, 1],
+  Axis2 = scores_mat.all[, 2]
+) %>%
+  # 2) Join the sample metadata in a tidy way
+  left_join(samdat_tbl(rclr), by = ".sample_name")
+
+# 3) Compute centroids BY Treament (since colour/ellipses use Treatment)
+centroids.all <- scores_df.all %>%
+  group_by(Treatment) %>%
+  summarise(cx = mean(Axis1, na.rm = TRUE),
+            cy = mean(Axis2, na.rm = TRUE),
+            .groups = "drop")
+
+segments.all <- scores_df.all %>%
+  left_join(centroids.all, by = "Treatment") %>%
+  mutate(dispersion = sqrt((Axis1 - cx)^2 + (Axis2 - cy)^2))
+
+# 4) Overlay on your existing plot (no inheritance of aesthetics)
+pca.all <- pca.all +
+  geom_segment(
+    data = segments.all,
+    aes(x = Axis1, y = Axis2, xend = cx, yend = cy, colour = Treatment),
+    inherit.aes = FALSE,
+    alpha = 0.6,
+    linewidth = 0.5
+  ) +
+  geom_point(
+    data = centroids.all,
+    aes(x = cx, y = cy, colour = Treatment),
+    inherit.aes = FALSE,
+    shape = 4, size = 4, stroke = 1.5
+  )
+pca.all
+
 
 ##separate by habitat
 #forested
@@ -194,11 +230,56 @@ pca.forest <- rclr.forest %>%
         title = element_text(face = "bold")) +
   theme(strip.text = element_text(face = "bold", size = 14)) +
   guides(color = guide_legend(title = "Lifestage")) + theme(legend.position = "right")
- #facet_wrap(~Season)
+pca.forest
+
+#overlay forest dispersion vectors
+# 1) Extract plotted coordinates (site scores) with the SAME scaling and axes
+scores_mat.forest <- vegan::scores(
+  ord_get(rclr.forest),      # ordination object from psExtra
+  display = "sites",
+  choices = 1:2,             # match ord_plot axes
+  scaling = 2                # match ord_plot default scaling
+)                            # vegan::scores is the recommended accessor for coordinates
+
+scores_df.forest <- tibble(
+  .sample_name = rownames(scores_mat.forest),
+  Axis1 = scores_mat.forest[, 1],
+  Axis2 = scores_mat.forest[, 2]
+) %>%
+  # 2) Join the sample metadata in a tidy way
+  left_join(samdat_tbl(rclr.forest), by = ".sample_name")
+
+# 3) Compute centroids BY Lifestage (since colour/ellipses use Lifestage)
+centroids.forest <- scores_df.forest %>%
+  group_by(Lifestage) %>%
+  summarise(cx = mean(Axis1, na.rm = TRUE),
+            cy = mean(Axis2, na.rm = TRUE),
+            .groups = "drop")
+
+segments.forest <- scores_df.forest %>%
+  left_join(centroids.forest, by = "Lifestage") %>%
+  mutate(dispersion = sqrt((Axis1 - cx)^2 + (Axis2 - cy)^2))
+
+# 4) Overlay on your existing plot (no inheritance of aesthetics)
+pca.forest <- pca.forest +
+  geom_segment(
+    data = segments.forest,
+    aes(x = Axis1, y = Axis2, xend = cx, yend = cy, colour = Lifestage),
+    inherit.aes = FALSE,
+    alpha = 0.6,
+    linewidth = 0.5
+  ) +
+  geom_point(
+    data = centroids.forest,
+    aes(x = cx, y = cy, colour = Lifestage),
+    inherit.aes = FALSE,
+    shape = 4, size = 4, stroke = 1.5
+  )
 pca.forest
 
 
-#open (differences in treatment since it was sig)
+
+###open (differences in treatment since it was sig)
 rclr.open <- tax_transform(open, trans = "rclr") %>%
   ord_calc(method = "PCA")
 
@@ -212,7 +293,7 @@ pca.open <- rclr.open %>%
     colour = "Treatment",
     plot_taxa = FALSE, 
     auto_caption = NA 
-  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("retro_four")) +
+  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("nickel_five")) +
   theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14), 
@@ -220,6 +301,53 @@ pca.open <- rclr.open %>%
   theme(strip.text = element_text(face = "bold", size = 14)) +
   guides(color = guide_legend(title = "Treatment")) + theme(legend.position = "right")
 # facet_wrap(~Lifestage)
+pca.open
+
+
+##overlay dispersion vectors
+#overlay forest dispersion vectors
+# 1) Extract plotted coordinates (site scores) with the SAME scaling and axes
+scores_mat.open <- vegan::scores(
+  ord_get(rclr.open),      # ordination object from psExtra
+  display = "sites",
+  choices = 1:2,             # match ord_plot axes
+  scaling = 2                # match ord_plot default scaling
+)                            # vegan::scores is the recommended accessor for coordinates
+
+scores_df.open <- tibble(
+  .sample_name = rownames(scores_mat.open),
+  Axis1 = scores_mat.open[, 1],
+  Axis2 = scores_mat.open[, 2]
+) %>%
+  # 2) Join the sample metadata in a tidy way
+  left_join(samdat_tbl(rclr.open), by = ".sample_name")
+
+# 3) Compute centroids BY Treament (since colour/ellipses use Treatment)
+centroids.open <- scores_df.open %>%
+  group_by(Treatment) %>%
+  summarise(cx = mean(Axis1, na.rm = TRUE),
+            cy = mean(Axis2, na.rm = TRUE),
+            .groups = "drop")
+
+segments.open <- scores_df.open %>%
+  left_join(centroids.open, by = "Treatment") %>%
+  mutate(dispersion = sqrt((Axis1 - cx)^2 + (Axis2 - cy)^2))
+
+# 4) Overlay on your existing plot (no inheritance of aesthetics)
+pca.open <- pca.open +
+  geom_segment(
+    data = segments.open,
+    aes(x = Axis1, y = Axis2, xend = cx, yend = cy, colour = Treatment),
+    inherit.aes = FALSE,
+    alpha = 0.6,
+    linewidth = 0.5
+  ) +
+  geom_point(
+    data = centroids.open,
+    aes(x = cx, y = cy, colour = Treatment),
+    inherit.aes = FALSE,
+    shape = 4, size = 4, stroke = 1.5
+  )
 pca.open
 
 
@@ -328,24 +456,79 @@ disp_df$Treatment <- paste0(aitch.sampledf$Treatment)
 disp_df$Lifestage <- factor(disp_df$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
 disp_df$Treatment <- factor(disp_df$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
 
-#set y positions for significance
-#stats_all[9,]$y.position <- 22
+
+#test a new plot
+plot_disp <-  ggplot(disp_df, aes(x = Lifestage, y = distances, color = Treatment))  + 
+  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+
+plot_disp <- plot_disp + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
+plot_disp <- plot_disp + theme(axis.text = element_text(face = "bold", size = 14), 
+                                           axis.title = element_text(face = "bold", size = 14), 
+                                           title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                           axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+  guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))
+  #stat_pvalue_manual(stats_treatment, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  #theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+plot_disp <- plot_disp + 
+  facet_grid(~Habitat, scales = "free", space = "free")+
+  theme(strip.text = element_text(size = 12, face = "bold"))+
+  labs(color = "Treatment") + xlab("Lifestage")
+plot_disp
+
 
 
 #do disp treatment first to match betas
 colnames(stats_treatment) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
 stats_treatment$y.position <- 22
 
-plot_disp <-  ggplot(disp_df, aes(x = Treatment, y = distances, color = Treatment))  + 
+plot_disp_treat <-  ggplot(disp_df, aes(x = Treatment, y = distances, color = Treatment))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
-plot_disp <- plot_disp + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+plot_disp_treat <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
-plot_disp <- plot_disp + theme(axis.text = element_text(face = "bold", size = 14), 
+plot_disp_treat <- plot_disp_treat + theme(axis.text = element_text(face = "bold", size = 14), 
                                axis.title = element_text(face = "bold", size = 14), 
                                title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
   guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))+
-stat_pvalue_manual(stats_treatment, label = "p.adj.signif", hide.ns = TRUE, size = 6)
-  #theme(legend.position = c(0.85, 0.9)) + theme(legend.key.size = unit(1, "mm"))
-  plot_disp
+stat_pvalue_manual(stats_treatment, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+plot_disp_treat
+
+#then for lifestage
+colnames(stats_life) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
+stats_life$y.position <- 22
+
+plot_disp_life <-  ggplot(disp_df, aes(x = Lifestage, y = distances, color = Lifestage))  + 
+  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+
+plot_disp_life <- plot_disp_life + geom_point(aes(color = Lifestage), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("retro_four"))
+plot_disp_life <- plot_disp_life + theme(axis.text = element_text(face = "bold", size = 14), 
+                                             axis.title = element_text(face = "bold", size = 14), 
+                                             title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                             axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+  guides(color = guide_legend(title = "Lifestage")) + theme(strip.text = element_text(face = "bold", size = 14))+
+  stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+plot_disp_life
+
+
+#then for season
+colnames(stats_season) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
+stats_season$y.position <- 22
+  
+plot_disp_season <-  ggplot(disp_df, aes(x = Season, y = distances, color = Season))  + 
+    geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+  
+plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+    ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("retro_four"))
+plot_disp_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
+                                          axis.title = element_text(face = "bold", size = 14), 
+                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                          axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+guides(color = guide_legend(title = "Season")) + theme(strip.text = element_text(face = "bold", size = 14))+
+stat_pvalue_manual(stats_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+plot_disp_season
