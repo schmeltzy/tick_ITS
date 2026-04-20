@@ -229,7 +229,8 @@ pca.forest.life <- rclr.forest %>%
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   theme(strip.text = element_text(face = "bold", size = 14)) +
-  guides(color = guide_legend(title = "Lifestage")) + theme(legend.position = "right")
+  guides(color = guide_legend(title = "Lifestage", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
+  theme(legend.box="vertical", legend.margin=margin())
 pca.forest.life
 
 #overlay forest dispersion vectors
@@ -290,8 +291,10 @@ pca.forest.season <- rclr.forest %>%
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
+  guides(color = guide_legend(title = "Season"), fill = guide_legend(label.theme = element_text(size = 10, lineheight = 0.8)))+
   theme(strip.text = element_text(face = "bold", size = 14)) +
-  guides(color = guide_legend(title = "Season")) + theme(legend.position = "right")
+  guides(color = guide_legend(title = "Season", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
+  theme(legend.box="vertical", legend.margin=margin())
 pca.forest.season
 
 #overlay forest dispersion vectors
@@ -361,8 +364,8 @@ pca.open <- rclr.open %>%
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   theme(strip.text = element_text(face = "bold", size = 14)) +
-  guides(color = guide_legend(title = "Treatment")) + theme(legend.position = "right")
-# facet_wrap(~Lifestage)
+  guides(color = guide_legend(title = "Treatment", keyheight = unit(3, "mm")))+ theme(legend.position = "top")+
+  theme(legend.box="vertical", legend.margin=margin())
 pca.open
 
 
@@ -601,10 +604,10 @@ plot_disp_life <- plot_disp_life + theme(axis.text = element_text(face = "bold",
                                          axis.title = element_text(face = "bold", size = 14), 
                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                          axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
- # labs(title = "Forested")+
   guides(color = guide_legend(title = "Lifestage")) + theme(strip.text = element_text(face = "bold", size = 14))+
   stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
-  theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+  guides(color = guide_legend(title = "Lifestage", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
+  theme(legend.box="vertical", legend.margin=margin())
 plot_disp_life
 
 
@@ -624,43 +627,25 @@ plot_disp_season <-  ggplot(disp_df_forested, aes(x = Season, y = distances, col
 
 plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
-plot_disp_forest_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
-                                                    axis.title = element_text(face = "bold", size = 14), 
-                                                    title = element_text(face = "bold"), axis.title.x = element_blank(), 
-                                                    axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
-#  labs(title = "Forested")+
-  guides(color = guide_legend(title = "Season")) + theme(strip.text = element_text(face = "bold", size = 14))+
+plot_disp_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
+                                         axis.title = element_text(face = "bold", size = 14), 
+                                         title = element_text(face = "bold"), axis.title.x = element_blank(), 
+                                         axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
+  guides(color = guide_legend(title = "Season"), fill = guide_legend(label.theme = element_text(size = 10, lineheight = 0.8)))+
+  theme(strip.text = element_text(face = "bold", size = 14))+
   stat_pvalue_manual(stats_forest_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
-  theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
-plot_disp_forest_season
+  guides(color = guide_legend(title = "Season", keyheight = unit(3, "mm"))) +
+  theme(legend.box="vertical", legend.margin=margin())
+plot_disp_season
 
 
-#then open season
-colnames(stats_open_season) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
-stats_open_season$y.position <- 23
-
+#subset to "open" habitat
 disp_df_open <- subset(disp_df, Habitat == "open")
-  
-#then plot
-plot_disp_season <-  ggplot(disp_df_open, aes(x = Season, y = distances, color = Season))  + 
-    geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
-  
-plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
-    ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
-plot_disp_open_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
-                                          axis.title = element_text(face = "bold", size = 14), 
-                                          title = element_text(face = "bold"), axis.title.x = element_text(face = "bold", size = 14), 
-                                          axis.text.x = element_text(face = "bold", size = 14), axis.ticks.x = element_blank()) + 
- # labs(title = "Open")+
-guides(color = guide_legend(title = "Season")) + theme(strip.text = element_text(face = "bold", size = 14))+
-stat_pvalue_manual(stats_open_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
-theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
-plot_disp_open_season
 
 
-#then open treatment
+#then disp open treatment
 colnames(stats_open_treat) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
-stats_open_treat$y.position <- 23
+stats_open_treat$y.position <- 21
 
 #then plot
 disp_df_open <- subset(disp_df, Habitat == "open")
@@ -674,43 +659,63 @@ plot_disp_open_treat <- plot_disp_treat + theme(axis.text = element_text(face = 
                                                   axis.title = element_text(face = "bold", size = 14), 
                                                   title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                                   axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
- # labs(title = "Open")+
   guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))+
- # stat_pvalue_manual(stats_open_treat, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
-  theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
+ stat_pvalue_manual(stats_open_treat, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  guides(color = guide_legend(title = "Treatment", keyheight = unit(3, "mm"))) +
+           theme(legend.position = "top")+
+  theme(legend.box="vertical", legend.margin=margin())
 plot_disp_open_treat
 
 
 ##figure out how we want to arrange our plots
+#Dispersion 1
 ggarrange(pca.all, plot_disp_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_all
 ggplot2::ggsave(here::here("output/pca_disp_all.png"), pca_disp_all,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #this is done
 
 
-pca_disp_forest_life <- ggarrange(pca.forest.life, plot_disp_life, nrow = 2, ncol = 1, common.legend = TRUE, legend = "left")
+#Dispersion 2 a 
+pca_disp_forest_life <- ggarrange(pca.forest.life, plot_disp_life, nrow = 2, ncol = 1, common.legend = TRUE, legend = "top")
 pca_disp_forest_life <-  annotate_figure(
   pca_disp_forest_life,
-  top = text_grob("Forested", face = "bold", size = 14)
-)
+  top = ggpubr::text_grob("Forested\n", face = "bold", size = 14, lineheight = 0.9))
+
+plot(pca_disp_forest_life)
 ggplot2::ggsave(here::here("output/pca_disp_forest_life.png"), pca_disp_forest_life,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #a and b
 
-ggarrange(pca.forest.season, plot_disp_season, nrow = 2, ncol = 1, common.legend = TRUE, legend = "left") -> pca_disp_forest_season
+
+#Dispersion 2 b
+ggarrange(pca.forest.season, plot_disp_season, nrow = 2, ncol = 1, common.legend = TRUE, legend = "top") -> pca_disp_forest_season
+pca_disp_forest_season <-  annotate_figure(
+  pca_disp_forest_season,
+  top = ggpubr::text_grob("Forested\n", face = "bold", size = 14, lineheight = 0.9))
 plot(pca_disp_forest_season)
 ggplot2::ggsave(here::here("output/pca_disp_forest_season.png"), pca_disp_forest_season,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #c and d
 
-ggarrange(pca.open, plot_disp_open_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_open_treat
+
+#Dispersion 2 c
+ggarrange(pca.open, plot_disp_open_treat, nrow = 2, ncol = 1, common.legend = TRUE, legend = "top") -> pca_disp_open_treat
 pca_disp_open_treat <-  annotate_figure(
   pca_disp_open_treat,
-  top = text_grob("Open", face = "bold", size = 14)
-)
+  top = ggpubr::text_grob("Open\n", face = "bold", size = 14, lineheight = 0.9))
+
+plot(pca_disp_open_treat)
 ggplot2::ggsave(here::here("output/pca_disp_open_treat.png"), pca_disp_open_treat,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #e and f
 
-pca_dispersion_combo <- ggarrange(pca_disp_forest_life, pca_disp_forest_season, pca_disp_open_treat, nrow = 3, ncol = 1, common.legend = FALSE)
+#put all together
+spacer <- ggplot() + theme_void()
+pca_dispersion_combo <- ggarrange(pca_disp_forest_life, spacer, pca_disp_forest_season, spacer, 
+                                  pca_disp_open_treat, nrow = 1, ncol = 5,
+                                  widths = c(1, 0.12, 1, 0.12, 1),  # <- increase 0.06 for larger gaps
+                                  common.legend = FALSE)
 plot(pca_dispersion_combo)
+ggplot2::ggsave(here::here("output/pca_dispersion_combo.png"), pca_dispersion_combo,
+                height = 450, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000) #combo plot of PCAs and dispersion results for significant betas
