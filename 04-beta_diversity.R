@@ -553,6 +553,10 @@ stats_open_treat$comparisons <- "open"
 stats_open_treat$group1 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,1)
 stats_open_treat$group2 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,2)
 
+#write dispersion open stats
+colnames(stats_open_treat) <- c("comparison","p.adj","p.adj.signif","treatment","group1","group2")
+write.csv(stats_open_treat, here::here("output/dispersion_open_treat_stats.csv"))
+
 
 #plot dispersion
 #get dispersion distance dfs
