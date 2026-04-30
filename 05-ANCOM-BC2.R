@@ -79,9 +79,12 @@ vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Genera') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
 #should probably save the figure
+
+
+
 
 #### then do for treatments
 tse_treatment_output <- ancombc2(data = tse, assay_name = "counts", tax_level = "Genus",
@@ -197,9 +200,9 @@ vol_plot_treatment + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Taxa') +
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') +
   theme(strip.text = element_text(face = "bold", size = 12)) +
-  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 12))
+  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 11))
 
 ##only diff in Mycosphaerellaceae in sugarbush treatments vs. burned
 #save fig
@@ -256,6 +259,7 @@ vol_plot_forest_treat <- df_forest_treat %>%
              y = -log10(p.adj),
              color = Genus)) + 
   geom_point(size = 3.5, alpha = 0.8)+
+  facet_grid(~comparison)+
   scale_color_manual(values = "lightgrey")
 
 vol_plot_forest_treat <- vol_plot_forest_treat + 
@@ -268,7 +272,7 @@ vol_plot_forest_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Genera') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
 ### none pass the p-value adjustment for forested between treatments
 
@@ -332,7 +336,7 @@ df_forest_life_pair <- subset(df_forest_life_pair, !(diff == "TRUE" & pass_sens 
 
 #put genera in order (need to put "other" last so it's greyed out)
 df_forest_life_pair$Genus <- factor(df_forest_life_pair$Genus, levels = c("Papiliotrema", "Unclassified Amphisphaeriales", "Vishniacozyma", "Other"))
-colors <- c("#DC267F", "#FFD300", "#1F9698", "lightgrey")
+colors <- c("maroon", "#FFD300", "#1F9698", "lightgrey")
 
 
 #and make our plot
@@ -354,7 +358,8 @@ vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Genera') + theme(strip.text = element_text(face = "bold", size = 12))
+  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
 
 ##only sig changes in adults v. nymphs
 
@@ -412,29 +417,33 @@ vol_plot_forest_season + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Genera') + theme(strip.text = element_text(face = "bold", size = 12))
+  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
 
 ##only Ramularia
 
 
-
+#===========================
 
 ####now do open habitats
 open <- subset_samples(ticks, Habitat=="open")
 #convert phylo object to tree summarized experiment
 tse_open <- mia::convertFromPhyloseq(open)
 
+#non-sig for open season and sex
+##only showing treatment since it was sig for betas
+
 tse_open_output <- ancombc2(data = tse_open, assay_name = "counts", tax_level = "Genus",
                               fix_formula = "Treatment", 
                               p_adj_method = "fdr", group = "Treatment", pseudo_sens = TRUE, 
                               alpha = 0.05, prv_cut = 0.1, neg_lb = FALSE, pairwise = FALSE,
-                              mdfdr_control = list(fwer_ctrl_method = "fdr", B = 100)) 
+                              ) 
 
 res_open <- tse_open_output$res
 
 #make another df of the output we want (non-intercept columns)
 df_open_treat <- data.frame(c(res_open[1], res_open[3], res_open[5], res_open[7]), res_open[9], res_open[11], res_open[13], res_open[15], res_open[17])
-df_open_treat$comparison <- "Treatment"
+df_open_treat$comparison <- "fall v. spring"
 colnames(df_open_treat)[2] <- "LFC"
 colnames(df_open_treat)[3] <- "SE"
 colnames(df_open_treat)[4] <- "Wstat"
@@ -453,9 +462,9 @@ df_open_treat$Genus[df_open_treat$p.adj >= 0.05] <- "Other"
 df_open_treat <- subset(df_open_treat, !(diff == "TRUE" & pass_sens == "FALSE"))
 
 #set some colors (colorblind friendly of course)
-#colors <- c(friendly_pal("glasbey_twelve"), "lightgrey")
+colors <- c("orange", "lightgrey")
 #put genera in order (need to put "other" last so it's greyed out)
-df_open_treat$Genus <- factor(df_open_treat$Genus, levels = c("Alternaria", "Pilidium", "Piskurozyma", "Plectosphaerella", "Ramularia", "Thyridium", "Unclassified Amphisphaeriales", "Unclassified Basidiomycota", "Unclassified Leotiomycetes", "Unclassified Mycosphaerellaceae", "Unclassified Tremellales", "Vishniacozyma", "Other"))
+df_open_treat$Genus <- factor(df_open_treat$Genus, levels = c("Unclassified Didymellaceae", "Other"))
 
 #and make our plot
 vol_plot_open_treat <- df_open_treat %>%
@@ -463,7 +472,8 @@ vol_plot_open_treat <- df_open_treat %>%
              y = -log10(p.adj),
              color = Genus)) + 
   geom_point(size = 3.5, alpha = 0.8)+
-  scale_color_manual(values = "lightgrey")
+  scale_color_manual(values = colors)+
+  facet_grid(~comparison)
 
 vol_plot_open_treat <- vol_plot_open_treat + 
   geom_hline(yintercept = -log10(0.05),
@@ -475,5 +485,6 @@ vol_plot_open_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 Adjusted p-value") + labs(color = 'Genera') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
+  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
