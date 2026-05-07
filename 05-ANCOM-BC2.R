@@ -83,7 +83,11 @@ vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
 
 #should probably save the figure
 
+write.csv(df_habitat, here::here("output/diffabund_habitat.csv"))
 
+ggplot2::ggsave(here::here("output/plot_diffabund_habitat.png"), vol_plot_all,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
 
 
 #### then do for treatments
@@ -207,7 +211,11 @@ vol_plot_treatment + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
 ##only diff in Mycosphaerellaceae in sugarbush treatments vs. burned
 #save fig
 
+write.csv(df_treatment_pair, here::here("output/diffabund_treatment.csv"))
 
+ggplot2::ggsave(here::here("output/plot_diffabund_treatment.png"), vol_plot_treatment,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
 
 ##############
 
@@ -273,6 +281,13 @@ vol_plot_forest_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
+
+
+write.csv(df_forest_treat, here::here("output/diffabund_forest_treat.csv"))
+
+ggplot2::ggsave(here::here("output/plot_diffabund_forest_treat.png"), vol_plot_forest_treat,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
 
 ### none pass the p-value adjustment for forested between treatments
 
@@ -361,6 +376,12 @@ vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
   xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
 
+write.csv(df_forest_life_pair, here::here("output/diffabund_forest_life.csv"))
+
+ggplot2::ggsave(here::here("output/plot_diffabund_forest_life.png"), vol_plot_forest_life_pair,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
 ##only sig changes in adults v. nymphs
 
 ##okay let's do season forested
@@ -421,6 +442,12 @@ vol_plot_forest_season + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
 
 ##only Ramularia
+
+write.csv(df_forest_season, here::here("output/diffabund_forest_season.csv"))
+
+ggplot2::ggsave(here::here("output/plot_diffabund_forest_season.png"), vol_plot_forest_season,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
 
 
 #===========================
@@ -488,3 +515,9 @@ vol_plot_open_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
   xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
+
+write.csv(df_open_treat, here::here("output/diffabund_open_treat.csv"))
+
+ggplot2::ggsave(here::here("output/plot_diffabund_open_treat.png"), vol_plot_open_treat,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
