@@ -9,6 +9,7 @@ library(fantaxtic)
 library(ANCOMBC)
 library(mia)
 library(ggpubfigs)
+library(ggpubr)
 
 #set seed
 set.seed(123)
@@ -75,11 +76,13 @@ vol_plot_all <- vol_plot_all +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
-  theme(axis.text = element_text(face = "bold", size = 14), 
+vol_plot_all <- vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+  theme(axis.text.x = element_blank(),
+    axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  #xlab("Log Fold Change") + 
+  ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
 #should probably save the figure
 
@@ -200,7 +203,7 @@ vol_plot_treatment <- vol_plot_treatment +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_treatment + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+vol_plot_treatment <- vol_plot_treatment + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
@@ -276,7 +279,7 @@ vol_plot_forest_treat <- vol_plot_forest_treat +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_forest_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+vol_plot_forest_treat <- vol_plot_forest_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
@@ -369,7 +372,7 @@ vol_plot_forest_life_pair <- vol_plot_forest_life_pair +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+vol_plot_forest_life_pair <- vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
         title = element_text(face = "bold")) +
@@ -434,7 +437,7 @@ vol_plot_forest_season <- vol_plot_forest_season +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_forest_season + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+vol_plot_forest_season <- vol_plot_forest_season + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
         title = element_text(face = "bold")) +
@@ -508,7 +511,7 @@ vol_plot_open_treat <- vol_plot_open_treat +
   geom_vline(xintercept = c(log2(0.5), log2(2)),
              linetype = "dashed")
 
-vol_plot_open_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+vol_plot_open_treat <- vol_plot_open_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
@@ -521,3 +524,16 @@ write.csv(df_open_treat, here::here("output/diffabund_open_treat.csv"))
 ggplot2::ggsave(here::here("output/plot_diffabund_open_treat.png"), vol_plot_open_treat,
                 height = 400, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000)
+
+## put our plots together
+#first with all samples comp. habitats and treatments
+#get rid of x-axis title on main fig
+diffabund_main_combo <- ggarrange(vol_plot_all, vol_plot_treatment, 
+                                  nrow = 2, ncol = 1,
+                                  #widths = c(1, 0.12, 1, 0.12, 1),  # <- increase 0.06 for larger gaps
+                                  common.legend = TRUE, legend = "top")
+ggplot2::ggsave(here::here("output/plot_diffabund_main_combo.png"), diffabund_main_combo,
+                height = 400, width = 600, units = "mm",
+                scale = 0.5, dpi = 1000)
+
+#then the others?
