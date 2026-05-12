@@ -118,7 +118,7 @@ plot_genus
 
 #save fig
 ggplot2::ggsave(here::here("output/plot_rel_abund.png"), plot_genus,
-                height = 600, width = 400, units = "mm",
+                height = 500, width = 500, units = "mm",
                 scale = 0.5, dpi = 1000)
 
 
@@ -153,7 +153,7 @@ plot.entos <- plot.entos + theme_bw(base_line_size = 1, base_rect_size = 1) +
   theme(legend.position = "right", legend.text = element_text(face = "bold", size = 10))
 plot.entos
 ggplot2::ggsave(here::here("output/plot.entos.png"), plot.entos,
-                height = 447, width = 520, units = "mm",
+                height = 400, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000)
 
 #we don't have a lot of replication but we can see if we can do stats
