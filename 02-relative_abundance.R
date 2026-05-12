@@ -29,6 +29,8 @@ ticks <- subset_samples(ps.rare, Type=="BLT")
 
 ## Transform to relative abundance ====
 ps.trans <- transform_sample_counts(ticks, function(OTU) (OTU/sum(OTU)*100))
+#check sample sums to 100
+sample_sums(ps.trans)
 
 #rename the NAs to higher taxa level
 # Fill in names for NA taxa, not including their rank
@@ -41,35 +43,12 @@ tax_table(ps.trans)
 sample_colors <- c("#4E79A7","#F28E2B","#E15759","#76B7B2","#59A14F","#EDC948","#B07AA1","#FF9DA7","#9C755F","darkblue","#BAB0AC")
 tol12 <- c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", 
            "#DDCC77", "#661100", "#CC6677", "#AA4499", "#882255", "#CCBB44","black") 
-tol.extras <- c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", 
-                "#DDCC77", "#661100", "#CC6677", "#AA4499", "#882255", "#CCBB44","black","#F28E2B","#E15759")
 
 ps.phy <- tax_glom(ps.trans, taxrank = "Phylum", NArm = FALSE)
 plot_bar(ps.phy, fill = "Phylum") +
   scale_fill_manual(values = sample_colors) 
 
-## Prune to get most abundant taxa ====
-top100 <- names(sort(taxa_sums(ps.trans), decreasing = TRUE))[1:100] 
-ps.top100 <- prune_taxa(top100, ps.trans)
-
-ps.top100@sam_data$Site <- factor(ps.top100@sam_data$Site)
-ps.top100@sam_data$Habitat <- factor(ps.top100@sam_data$Habitat)
-
-#trim samples to just get the ones with taxa remaining
-ps.top100 <- prune_samples(sample_sums(ps.top100@otu_table) > 0, ps.top100)
-
-## Plot top100
-plot.relAbund <- plot_bar(ps.top100, x="Sample", fill="Class") + 
-  #facet_grid(vars(Habitat), scales = "free_x") + 
-  scale_fill_manual(values = sample_colors) 
-plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1) + 
-  theme(axis.text.x = element_text(size = 6.5, angle = 90, hjust = 1), 
-        axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("Sample") + ylab("Relative Abundance (%)") +
-  labs(title = "Tick-associated mycobiome") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Class") 
-plot.relAbund
-
-## okay what if we just do top 30 taxa, do we see Hypocreales?
-## Prune most abundant taxa ====
+##prune to get most abundant taxa 
 top30 <- names(sort(taxa_sums(ps.trans), decreasing = TRUE))[1:30] 
 ps.top30 <- prune_taxa(top30, ps.trans)
 
@@ -85,7 +64,63 @@ plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1
   labs(title = "Top 30 most abundant tick-associated fungi") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Family") 
 plot.relAbund
 
-## Yes they're in there 
+#we see some Hypocreales in there
+
+#melt at genus level
+ps_trans_genus_melt <- ps.trans %>%
+  tax_glom(taxrank = "Genus") %>%
+  psmelt()
+
+#get genera with mean relative abundance >1% across all samples
+genus_sum <- ps_trans_genus_melt %>% group_by(Genus) %>% dplyr::summarise(Average = mean(Abundance))
+genus_sub <- genus_sum[which(genus_sum$Average > 1),]
+gen_names <- genus_sub$Genus
+gen_names
+
+#replace genus with <1% abundance with NAs
+ps_trans_genus_melt$genus <- ps_trans_genus_melt$Genus
+
+ps_trans_genus_melt$genus[ps_trans_genus_melt$genus != "Alternaria" & 
+                          ps_trans_genus_melt$genus != "Mycosphaerella" &
+                          ps_trans_genus_melt$genus != "Paraphaeosphaeria" &
+                          ps_trans_genus_melt$genus != "Ramularia" &
+                          ps_trans_genus_melt$genus != "Unclassified Basidiomycota" &
+                          ps_trans_genus_melt$genus != "Unclassified Fungi" &
+                          ps_trans_genus_melt$genus != "Unclassified Mycosphaerellaceae" &
+                          ps_trans_genus_melt$genus != "Cladosporium" &
+                          ps_trans_genus_melt$genus != "Papiliotrema" & 
+                          ps_trans_genus_melt$genus != "Plectosphaerella" &
+                          ps_trans_genus_melt$genus != "Unclassified Amphisphaeriales" &
+                          ps_trans_genus_melt$genus != "Unclassified Didymellaceae" &
+                          ps_trans_genus_melt$genus != "Unclassified Leotiomycetes" & 
+                          ps_trans_genus_melt$genus != "Vishniacozyma"  ] <- NA
+
+#make our plot
+colors <- c(friendly_pal("glasbey_twelve"),"lightgrey","maroon")
+#reorder colors to match genera of other plots for consistency
+colors <- c("#9A4D42","#FF0000","#000033","#00FF00","maroon","#009FFF","#FFD300","#005300","#0000FF","orange","#00FFBE","#FF00B6","#1F9698","lightgrey")
+plot_genus = ggplot(ps_trans_genus_melt, aes(x = Treatment, y=Abundance)) + 
+  geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
+  scale_fill_manual(values= colors, 
+                   na.value = "transparent")  +
+  facet_grid(~Habitat, scales = "free_x", space = "free_x") +
+  theme_bw(base_line_size = 1, base_rect_size = 1.5) +
+  theme(axis.text = element_text(face = "bold", size = 14), 
+        axis.title = element_text(face = "bold", size = 14), 
+        title = element_text(face = "bold")) +
+  ylab("Relative Abundance (%)") +
+  xlab("Treatment") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 11)) +
+  theme(strip.text = element_text(face = "bold", size = 11)) +
+  theme(legend.position = "right", legend.text = element_text(face = "bold", size = 10))+
+  labs(fill = "Genus")
+plot_genus
+
+#save fig
+ggplot2::ggsave(here::here("output/plot_rel_abund.png"), plot_genus,
+                height = 600, width = 400, units = "mm",
+                scale = 0.5, dpi = 1000)
+
 
 ## Let's try to just look at some of the entomopathogens
 ## Subset into the 4 we know about (mostly)
@@ -93,19 +128,29 @@ ps.gen <- tax_glom(ps.trans, taxrank = "Genus", NArm = FALSE)
 ps.pathogens <- subset_taxa(ps.gen, Genus == "Metarhizium" | 
               Genus == "Beauveria" | 
               Genus == "Lecanicillium" |
-              Genus == "Cordyceps" )
+              Genus == "Cordyceps" |
+              Genus == "Paecilomyces" )
 
 #trim samples to just get the ones with entos
 path.pruned <- prune_samples(sample_sums(ps.pathogens@otu_table) > 0, ps.pathogens)
 
+#put treatments in order for the plot
+path.pruned@sam_data$Treatment <- factor(path.pruned@sam_data$Treatment, levels = c("unmowed", "mowed","unmanaged"))
+
+
+## entomopathogen relative abundance figure
 plot.entos <- plot_bar(path.pruned, x="Lifestage", fill = "Genus") +
   facet_wrap(~Treatment) +
   geom_bar(stat="identity")+
   scale_fill_manual(values = sample_colors)
-plot.entos <- plot.entos + theme_bw(base_line_size = 1, base_rect_size = 1) + 
+plot.entos <- plot.entos + theme_bw(base_line_size = 1, base_rect_size = 1) +
+  theme(axis.text = element_text(face = "bold", size = 14), 
+        axis.title = element_text(face = "bold", size = 14), 
+        title = element_text(face = "bold")) +
   theme(axis.text.x = element_text(face = "bold", size = 11.5, angle = 45, hjust = 1, vjust = 1), 
-        axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("") + ylab("Relative Abundance (%)") +
-  labs(title = "Relative abundance of tick-associated entomopathogens in forested habitat") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Genus") 
+        axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("Life Stage") + ylab("Relative Abundance (%)") +
+  theme(strip.text = element_text(face = "bold", size = 11)) +
+  theme(legend.position = "right", legend.text = element_text(face = "bold", size = 10))
 plot.entos
 ggplot2::ggsave(here::here("output/plot.entos.png"), plot.entos,
                 height = 447, width = 520, units = "mm",
