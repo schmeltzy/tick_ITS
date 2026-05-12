@@ -27,6 +27,10 @@ ticks <- subset_samples(ps, Type=="BLT")
 # convert phylo object to tree summarized experiment
 tse <- mia::convertFromPhyloseq(ticks)
 
+#make "open" first so it matches other plots
+# Example: Make 'Control' the reference instead of alphabetical
+tse$Habitat <- factor(tse$Habitat, levels = c("open", "forested"))
+
 #Are there differentially abundant taxa by habitat?
 tse_habitat_output <- ancombc2(data = tse, assay_name = "counts", tax_level = "Genus",
                                fix_formula = "Habitat", 
@@ -37,7 +41,7 @@ res <- tse_habitat_output$res
 
 #make another df of the output we want (non-intercept columns)
 df_habitat <- data.frame(c(res[1], res[3], res[5], res[7]), res[9], res[11], res[13], res[15], res[17])
-df_habitat$comparison <- "forested v. open"
+df_habitat$comparison <- "open v. forested"
 colnames(df_habitat)[2] <- "LFC"
 colnames(df_habitat)[3] <- "SE"
 colnames(df_habitat)[4] <- "Wstat"
@@ -57,12 +61,13 @@ df_habitat$Genus[df_habitat$p.adj >= 0.05] <- "Other"
 df_habitat <- subset(df_habitat, !(diff == "TRUE" & pass_sens == "FALSE"))
 
 #set some colors (colorblind friendly of course)
-colors <- c(friendly_pal("glasbey_twelve"), "lightgrey")
+colors <- c(friendly_pal("glasbey_twelve"), "lightgrey","maroon")
 #put genera in order (need to put "other" last so it's greyed out)
-df_habitat$Genus <- factor(df_habitat$Genus, levels = c("Alternaria", "Pilidium", "Piskurozyma", "Plectosphaerella", "Ramularia", "Thyridium", "Unclassified Amphisphaeriales", "Unclassified Basidiomycota", "Unclassified Leotiomycetes", "Unclassified Mycosphaerellaceae", "Unclassified Tremellales", "Vishniacozyma", "Other"))
+df_habitat$Genus <- factor(df_habitat$Genus, levels = c("Alternaria", "Pilidium", "Piskurozyma", "Plectosphaerella", "Ramularia", "Thyridium", "Unclassified Amphisphaeriales", "Unclassified Basidiomycota", "Unclassified Leotiomycetes", "Unclassified Mycosphaerellaceae", "Unclassified Tremellales", "Vishniacozyma", "Other", "Papiliotrema"))
 
 #and make our plot
 vol_plot_all <- df_habitat %>%
+  filter(!is.na(df_habitat$Genus)) %>%
   ggplot(aes(x = LFC,
              y = -log10(p.adj),
              color = Genus)) + 
@@ -77,12 +82,16 @@ vol_plot_all <- vol_plot_all +
              linetype = "dashed")
 
 vol_plot_all <- vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
-  theme(axis.text.x = element_blank(),
-    axis.text = element_text(face = "bold", size = 14), 
+  theme(axis.text = element_text(face = "bold", size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
         axis.title = element_text(face = "bold", size = 14), 
-        title = element_text(face = "bold")) +
+        title = element_text(face = "bold"),
+        legend.location = "plot",
+        legend.text = element_text(size = 11)) +
   #xlab("Log Fold Change") + 
-  ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  #ylab("-log10 (adj. p-value)") +
+  labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
 #should probably save the figure
 
@@ -205,11 +214,16 @@ vol_plot_treatment <- vol_plot_treatment +
 
 vol_plot_treatment <- vol_plot_treatment + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
-        axis.title = element_text(face = "bold", size = 14), 
+        axis.title = element_text(face = "bold", size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') +
-  theme(strip.text = element_text(face = "bold", size = 12)) +
-  theme(legend.position = "top", legend.text = element_text(face = "bold", size = 11))
+  #xlab("Log Fold Change") +
+  #ylab("-log10 (adj. p-value)") +
+  labs(color = 'Taxa') +
+  theme(strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 12)) +
+  theme(legend.position = "top", legend.location = "plot", legend.text = element_text(face = "bold", size = 11))
 
 ##only diff in Mycosphaerellaceae in sugarbush treatments vs. burned
 #save fig
@@ -282,8 +296,11 @@ vol_plot_forest_treat <- vol_plot_forest_treat +
 vol_plot_forest_treat <- vol_plot_forest_treat + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
+        axis.title.y = element_blank(),
         title = element_text(face = "bold")) +
-  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
+  xlab("Log Fold Change") +
+  #ylab("-log10 (adj. p-value)") +
+  labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
 
 
 write.csv(df_forest_treat, here::here("output/diffabund_forest_treat.csv"))
@@ -375,9 +392,12 @@ vol_plot_forest_life_pair <- vol_plot_forest_life_pair +
 vol_plot_forest_life_pair <- vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
+        axis.title.y = element_blank(),
         title = element_text(face = "bold")) +
   theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
-  xlab("Log Fold Change") + ylab("-log10 (adj. p-value)") + labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
+  xlab("Log Fold Change") +
+  #ylab("-log10 (adj. p-value)") +
+  labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
 
 write.csv(df_forest_life_pair, here::here("output/diffabund_forest_life.csv"))
 
@@ -528,12 +548,20 @@ ggplot2::ggsave(here::here("output/plot_diffabund_open_treat.png"), vol_plot_ope
 ## put our plots together
 #first with all samples comp. habitats and treatments
 #get rid of x-axis title on main fig
-diffabund_main_combo <- ggarrange(vol_plot_all, vol_plot_treatment, 
-                                  nrow = 2, ncol = 1,
+#get rid of x-axis title on 2nd fig
+#add Papiliotrema and its color to main fig
+#get rid of y axis title on all figs
+diffabund_main_combo <- ggarrange(vol_plot_all, vol_plot_treatment, vol_plot_forest_life_pair,
+                                  nrow = 3, ncol = 1,
                                   #widths = c(1, 0.12, 1, 0.12, 1),  # <- increase 0.06 for larger gaps
                                   common.legend = TRUE, legend = "top")
+#add common y-axis
+diffabund_main_combo <- annotate_figure(diffabund_main_combo,
+                                        left = text_grob("-log10 (adj. p-value)", face = "bold", color = "black", rot = 90, size = 16))
+diffabund_main_combo
+
 ggplot2::ggsave(here::here("output/plot_diffabund_main_combo.png"), diffabund_main_combo,
-                height = 400, width = 600, units = "mm",
+                height = 500, width = 500, units = "mm",
                 scale = 0.5, dpi = 1000)
 
-#then the others?
+
