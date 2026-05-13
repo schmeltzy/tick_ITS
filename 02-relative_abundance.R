@@ -77,6 +77,8 @@ genus_sub <- genus_sum[which(genus_sum$Average > 1),]
 gen_names <- genus_sub$Genus
 gen_names
 
+write.csv(genus_sub, here::here("output/top_relabund_genera.csv"))
+
 #replace genus with <1% abundance with NAs
 ps_trans_genus_melt$genus <- ps_trans_genus_melt$Genus
 
@@ -161,6 +163,9 @@ melt <- psmelt(ps.pathogens)
 melt %>%
   select(Sample, Abundance, Treatment, Genus, Season, Sex, Habitat, Lifestage) -> melt
 
+#look at distrbution
+hist(melt$Abundance) #definitely not normal
+
 #take average relative abundance between lifestages in forested habitat
 melt %>%
   filter(Habitat == "forested") %>%
@@ -169,14 +174,14 @@ melt %>%
 
 ## let's compare mean relative abundance of entomopathogens by Lifestage, Habitat, Treatment, Sex, Season
 
-wil_Season <- broom::tidy(wilcox.test(Abundance ~ Season, data = melt)) #sig
-wil_Season$var <- "season"
+kw_Season <- broom::tidy(kruskal.test(Abundance ~ Season, data = melt)) #sig
+kw_Season$var <- "season"
 
-kw_Treatment <- broom::tidy(kruskal.test(Abundance ~ Treatment, data = melt)) #overall NS but p = 0.06
+kw_Treatment <- broom::tidy(kruskal.test(Abundance ~ Treatment, data = melt)) #NS
 kw_Treatment$var <- "treatment"
 
-wil_Habitat <- broom::tidy(wilcox.test(Abundance ~ Habitat, data = melt)) #sig
-wil_Habitat$var <- "Habitat"
+kw_Habitat <- broom::tidy(kruskal.test(Abundance ~ Habitat, data = melt)) #NS
+kw_Habitat$var <- "Habitat"
 
 kw_Sex <- broom::tidy(kruskal.test(Abundance ~ Sex, data = melt)) #NS
 kw_Sex$var <- "sex"
@@ -199,24 +204,40 @@ means.hab <- melt %>%
 means.treatment<- melt %>%
   summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Treatment) %>%
   arrange()
+means.sex<- melt %>%
+  summarise(mean = mean(Abundance), sd = sd(Abundance), .by = Sex) %>%
+  arrange()
 
 #total relative abundance by lifestage by treatment
 total.abund.life.mowed <- melt %>%
   filter(Treatment == "mowed") %>%
-  summarise(total = sum(Abundance), .by = Lifestage) %>%
+  summarise(total = sum(Abundance), .by = Lifestage, Treatment = "mowed") %>%
   arrange()
 
 total.abund.life.unmowed <- melt %>%
   filter(Treatment == "unmowed") %>%
-  summarise(total = sum(Abundance), .by = Lifestage) %>%
+  summarise(total = sum(Abundance), .by = Lifestage, Treatment = "unmowed") %>%
+  arrange()
+
+total.abund.life.unmanaged <- melt %>%
+  filter(Treatment == "unmanaged") %>%
+  summarise(total = sum(Abundance), .by = Lifestage, Treatment = "unmanaged") %>%
   arrange()
 
 #save output
-rbind(wil_Season, wil_Habitat) -> wil_output
-write.csv(wil_output, here::here("output/wil_output.csv"))
-
-rbind(kw_Lifestage, kw_Sex, kw_Treatment) -> kw_output
+rbind(kw_Season, kw_Habitat, kw_Lifestage, kw_Sex, kw_Treatment) -> kw_output
 write.csv(kw_output, here::here("output/kw_output.csv"))
 
 rbind(dunn_Lifestage) -> dunn_output
 write.csv(dunn_output, here::here("output/dunn_output.csv"))
+
+rbind(total.abund.life.mowed, total.abund.life.unmowed, total.abund.life.unmanaged) -> total.abund.life.output
+write.csv(total.abund.life.output, here::here("output/total_abundance_lifestage_pathogens.csv"))
+
+bind_rows(means.hab, means.life, means.treatment, means.season, means.sex) -> means.all.output
+write.csv(means.all.output, here::here("output/means_all_pathogens.csv"))
+
+
+
+
+
