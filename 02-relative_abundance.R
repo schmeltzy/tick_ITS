@@ -52,12 +52,13 @@ ps.top30 <- prune_taxa(top30, ps.trans)
 ps.top30 <- tax_glom(ps.top30, taxrank = "Family", NArm = FALSE)
 
 plot.relAbund <- plot_bar(ps.top30, x="Sample", fill="Family") +
-  #+facet_grid(vars(Lifestage), scales = "free_x") + 
+  facet_grid(vars(Habitat), scales = "free_x") + 
   scale_fill_manual(values = tol12) 
 plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
   theme(axis.text.x = element_text(size = 0, angle = 90), 
         axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("Sample") + ylab("Relative Abundance (%)") +
-  labs(title = "Top 30 most abundant tick-associated fungi") + theme(strip.text = element_text(face = "bold", size = 11)) + labs(fill = "Family") 
+  labs(title = "Top 30 most abundant tick-associated fungi") + theme(strip.text = element_text(face = "bold", size = 11)) +
+  labs(fill = "Family") 
 plot.relAbund
 
 #we see some Hypocreales in there
@@ -123,6 +124,35 @@ ggplot2::ggsave(here::here("output/plot_rel_abund.png"), plot_genus,
                 height = 500, width = 500, units = "mm",
                 scale = 0.5, dpi = 1000)
 
+
+#================
+
+#what if we do the same thing but separated by habitat and look at at least 1% abundance
+forest <- subset_samples(ps.trans, Habitat=="forested")
+open <- subset_samples(ps.trans, Habitat=="open")
+
+##prune to get most abundant taxa 
+top30.forest <- names(sort(taxa_sums(forest), decreasing = TRUE))[1:30] 
+ps.top30.forest <- prune_taxa(top30.forest, forest)
+
+tol12extras <- c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", 
+           "#DDCC77", "#661100", "#CC6677", "#AA4499", "#882255", "#CCBB44","black","blue","magenta","maroon","orange","yellow","purple","pink")
+
+## Plot relative abundance ====
+ps.top30.forest <- tax_glom(ps.top30.forest, taxrank = "Family", NArm = FALSE)
+
+plot.top30.forest <- plot_bar(ps.top30.forest, x="Sample", fill="Family") +
+  #facet_grid(vars(Lifestage), scales = "free_x") + 
+  scale_fill_manual(values = tol12extras) 
+plot.top30.forest <- plot.top30.forest + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
+  theme(axis.text.x = element_text(size = 0, angle = 90), 
+        axis.text.y = element_text(face = "bold", size = 11.5), title = element_text(face = "bold")) + xlab("Sample") + ylab("Relative Abundance (%)") +
+  labs(title = "Top 30 most abundant tick-associated fungi") + theme(strip.text = element_text(face = "bold", size = 11)) +
+  labs(fill = "Family") 
+plot.top30.forest
+
+
+#===============================
 
 ## Let's try to just look at some of the entomopathogens
 ## Subset into the 4 we know about (mostly)
