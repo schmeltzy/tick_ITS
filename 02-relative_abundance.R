@@ -5,14 +5,10 @@ library(ggplot2)
 library(phyloseq)
 library(here)
 library(fantaxtic)
-#library(speedyseq)
-#library(microViz)
-#library(patchwork)
 library(ggpubr)
 library(dplyr)
 library(rstatix)
 library(broom)
-#library(effsize)
 
 #set seed for reproducibility
 set.seed(123)
@@ -72,7 +68,7 @@ ps_trans_genus_melt <- ps.trans %>%
   psmelt()
 
 #get genera with mean relative abundance >1% across all samples
-genus_sum <- ps_trans_genus_melt %>% group_by(Genus) %>% dplyr::summarise(Average = mean(Abundance))
+genus_sum <- ps_trans_genus_melt %>% group_by(Genus) %>% dplyr::summarise(Average = mean(Abundance), sd = sd(Abundance), min = min(Abundance), max = max(Abundance))
 genus_sub <- genus_sum[which(genus_sum$Average > 1),]
 gen_names <- genus_sub$Genus
 gen_names
@@ -101,11 +97,15 @@ ps_trans_genus_melt$genus[ps_trans_genus_melt$genus != "Alternaria" &
 colors <- c(friendly_pal("glasbey_twelve"),"lightgrey","maroon")
 #reorder colors to match genera of other plots for consistency
 colors <- c("#9A4D42","#FF0000","#000033","#00FF00","maroon","#009FFF","#FFD300","#005300","#0000FF","orange","#00FFBE","#FF00B6","#1F9698","lightgrey")
+#also reorder lifestage levels
+ps_trans_genus_melt$Lifestage <- factor(ps_trans_genus_melt$Lifestage, levels = c("larva", "nymph","adult"))
+
+
 plot_genus = ggplot(ps_trans_genus_melt, aes(x = Treatment, y=Abundance)) + 
   geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
   scale_fill_manual(values= colors, 
                    na.value = "transparent")  +
-  facet_grid(~Habitat, scales = "free_x", space = "free_x") +
+  facet_grid(~Habitat+Lifestage, scales = "free_x", space = "free_x") +
   theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
