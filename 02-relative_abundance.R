@@ -53,7 +53,7 @@ ps.top30 <- prune_taxa(top30, ps.trans)
 ps.top30 <- tax_glom(ps.top30, taxrank = "Family", NArm = FALSE)
 
 plot.relAbund <- plot_bar(ps.top30, x="Sample", fill="Family") +
-  facet_grid(vars(Habitat), scales = "free_x") + 
+  #facet_grid(vars(Habitat), scales = "free_x") + 
   scale_fill_manual(values = tol12) 
 plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
   theme(axis.text.x = element_text(size = 0, angle = 90), 
@@ -188,7 +188,6 @@ ps_trans_forest_melt$genus[ps_trans_forest_melt$genus != "Cladosporium" &
                             ps_trans_forest_melt$genus != "Vishniacozyma"  ] <- NA
 
 #make our plot
-colors <- c(friendly_pal("glasbey_twelve"),"lightgrey","maroon")
 #reorder colors to match genera of other plots for consistency
 colors <- c("#FF00B6","lightgrey","#00FFBE","orange","#1F9698","#FFD300","#009FFF","#00FF00","#005300","#000033","#9A4D42","maroon","#FF0000","#FF9DA7","#440154","#0000FF")
 #ugh these are reversed!
@@ -202,7 +201,7 @@ plot_forest = ggplot(ps_trans_forest_melt, aes(x = Lifestage, y=Abundance)) +
   geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
   scale_fill_manual(values= colors, 
                     na.value = "transparent")  +
-  facet_grid(~Treatment, scales = "free_x", space = "free_x") +
+  facet_grid(~Treatment+Season, scales = "free_x", space = "free_x") +
   theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
@@ -254,7 +253,6 @@ ps_trans_open_melt$genus[ps_trans_open_melt$genus != "Cladosporium" &
                              ps_trans_open_melt$genus != "Vishniacozyma"  ] <- NA
 
 #make our plot
-colors <- c(friendly_pal("glasbey_twelve"),"lightgrey","maroon")
 #reorder colors to match genera of other plots for consistency
 colors <- c("lightgrey","#1F9698","#0000FF","orange","#FF0000","#005300","#FF9DA7","maroon","#440154","#9A4D42","#00FF00","#000033","#009FFF","#FFD300")
 #reverse the order
@@ -262,11 +260,11 @@ colors <- rev(c("lightgrey","#1F9698","#0000FF","orange","#FF0000","#005300","#F
 
 ps_trans_open_melt$Season <- factor(ps_trans_open_melt$Season, levels = c("spring", "fall"))
 
-plot_open = ggplot(ps_trans_open_melt, aes(x = Season, y=Abundance)) + 
+plot_open = ggplot(ps_trans_open_melt, aes(x = Lifestage, y=Abundance)) + 
   geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
   scale_fill_manual(values= colors, 
                     na.value = "transparent")  +
-  facet_grid(~Treatment, scales = "free_x", space = "free_x") +
+  facet_grid(~Treatment+Season, scales = "free_x", space = "free_x") +
   theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
