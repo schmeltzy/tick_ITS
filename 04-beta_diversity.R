@@ -586,13 +586,16 @@ plot_disp_treat <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
 plot_disp_treat <- plot_disp_treat + theme(axis.text = element_text(face = "bold", size = 14), 
                                axis.title = element_text(face = "bold", size = 14), 
-                               title = element_text(face = "bold"), axis.title.x = element_blank(), 
-                               axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
+                               title = element_text(face = "bold"), axis.title.x = element_text(face = "bold", color = "white"), 
+                               axis.text.x = element_text(face = "bold", color = "white"), axis.ticks.x = element_blank()) + 
   guides(color = guide_legend(title = "Treatment")) + theme(strip.text = element_text(face = "bold", size = 14))+
 stat_pvalue_manual(stats_treatment, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
 theme(legend.position = c(0.15, 0.9)) + theme(legend.key.size = unit(1, "mm"))
 plot_disp_treat
 
+
+
+disp_df_forested <- subset(disp_df, Habitat == "forested")
 
 #then for lifestage
 colnames(stats_life) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
@@ -623,7 +626,6 @@ stats_season$y.position <- 23
 colnames(stats_forest_season) <- c("comparison","p.adj","p.adj.signif","variable","group1","group2")
 stats_forest_season$y.position <- 22
 
-disp_df_forested <- subset(disp_df, Habitat == "forested")
 
 #then plot
 plot_disp_season <-  ggplot(disp_df_forested, aes(x = Season, y = distances, color = Season))  + 
@@ -673,7 +675,8 @@ plot_disp_open_treat
 
 ##figure out how we want to arrange our plots
 #Dispersion 1
-ggarrange(pca.all, plot_disp_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_all
+plot_pca_disp_all <- ggarrange(pca.all, plot_disp_treat, nrow = 1, ncol = 2, common.legend = TRUE, legend = "left") -> pca_disp_all
+plot_pca_disp_all
 ggplot2::ggsave(here::here("output/pca_disp_all.png"), pca_disp_all,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #this is done
