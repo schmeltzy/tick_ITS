@@ -129,29 +129,6 @@ ggplot2::ggsave(here::here("output/plot_rel_abund.png"), plot_genus,
 forest <- subset_samples(ps.trans, Habitat=="forested")
 open <- subset_samples(ps.trans, Habitat=="open")
 
-# ##prune to get most abundant taxa 
-# top30.forest <- names(sort(taxa_sums(forest), decreasing = TRUE))[1:30] 
-# ps.top30.forest <- prune_taxa(top30.forest, forest)
-# 
-# tol12extras <- c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", 
-#            "#DDCC77", "#661100", "#CC6677", "#AA4499", "#882255", "#CCBB44","black","blue","magenta","maroon","orange","yellow","purple","pink","darkblue","lightblue")
-# 
-# ## Plot relative abundance ====
-# ps.top30.forest <- tax_glom(ps.top30.forest, taxrank = "Order", NArm = FALSE)
-# #put samples in order
-# ps.top30.forest@sam_data$Lifestage <- factor(ps.top30.forest@sam_data$Lifestage, levels = c("larva", "nymph","adult"))
-# 
-# 
-# plot.top30.forest <- plot_bar(ps.top30.forest, x="Abundance", y="Sample", fill="Order") +
-#   facet_wrap(~Treatment, scales = "free_y") + 
-#   scale_fill_manual(values = tol12extras) 
-# plot.top30.forest <- plot.top30.forest + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
-#   theme(axis.text.x = element_text(face = "bold", size = 11.5), title = element_text(face = "bold"), 
-#         axis.text.y = element_blank()) +
-#   xlab("Relative Abundance (%)") + ylab("Sample") +
-#   labs(title = "Top 30 most abundant tick-associated fungi") + theme(strip.text = element_text(face = "bold", size = 11)) +
-#   labs(fill = "Order") 
-# plot.top30.forest
 
 ###maybe 1% abundance is better
 #melt at genus level
@@ -201,14 +178,15 @@ plot_forest = ggplot(ps_trans_forest_melt, aes(x = Lifestage, y=Abundance)) +
   geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
   scale_fill_manual(values= colors, 
                     na.value = "transparent")  +
-  facet_grid(~Treatment+Season, scales = "free_x", space = "free_x") +
+  facet_grid(Treatment~Season, scales = "free_x", space = "free_x") +
   theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   ylab("Relative Abundance (%)") +
-  xlab("Life Stage") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 11)) +
+  #xlab("Life Stage") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+        axis.title.x = element_blank()) +
   theme(strip.text = element_text(face = "bold", size = 11)) +
   theme(legend.position = "right", legend.text = element_text(face = "bold", size = 10))+
   labs(fill = "Genus")
