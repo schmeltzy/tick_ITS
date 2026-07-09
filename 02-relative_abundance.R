@@ -112,6 +112,7 @@ plot_genus = ggplot(ps_trans_genus_melt, aes(x = Treatment, y=Abundance)) +
   ylab("Relative Abundance (%)") +
   xlab("Treatment") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 11)) +
+  scale_x_discrete(labels = c("mowed" = "managed", "unmowed" = "unmanaged", "burned", "unmanaged" = "unburned")) +
   theme(strip.text = element_text(face = "bold", size = 11)) +
   theme(legend.position = "right", legend.text = element_text(face = "bold", size = 10))+
   labs(fill = "Genus")
@@ -284,7 +285,7 @@ tax_df$Species <- paste(tax_df$Genus, tax_df$Species, sep = " ")
 tax_table(path.pruned) <- tax_table(as.matrix(tax_df))
 
 ## entomopathogen relative abundance figure
-plot.entos <- plot_bar(path.pruned, x="Lifestage", fill = "Species") +
+plot.entos <- plot_bar(path.pruned, x="Lifestage", fill = "Genus") +
   facet_wrap(~Treatment) +
   geom_bar(stat="identity")+
   scale_fill_manual(values = sample_colors)
