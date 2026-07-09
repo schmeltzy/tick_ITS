@@ -18,6 +18,12 @@ set.seed(123)
 #load in unrarefied phyloseq object
 ps <- readRDS("phyloseq_obj.rds")
 
+#change the variable names
+ps@sam_data$Treatment <- gsub("unmanaged", "unburned", ps@sam_data$Treatment)
+ps@sam_data$Treatment <- gsub("mowed", "managed", ps@sam_data$Treatment)
+ps@sam_data$Treatment <- gsub("unmowed", "unmanaged", ps@sam_data$Treatment)
+
+
 ###let's subset to just look at ticks (not soil)
 ticks <- subset_samples(ps, Type=="BLT")
 #and ticks by habitat type
@@ -140,8 +146,7 @@ rclr <- tax_transform(ticks, trans = "rclr") %>%
 
 #make sure things are in order
 rclr@sam_data$Lifestage <- factor(rclr@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
-rclr@sam_data$Treatment <- factor(rclr@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
-
+rclr@sam_data$Treatment <- factor(rclr@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
 
 pca.all <- rclr %>%
   ord_plot( 
@@ -214,7 +219,8 @@ rclr.forest <- tax_transform(forest, trans = "rclr") %>%
 
 #make sure things are in order
 rclr.forest@sam_data$Lifestage <- factor(rclr.forest@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
-rclr.forest@sam_data$Treatment <- factor(rclr.forest@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+rclr.forest@sam_data$Treatment <- factor(rclr.forest@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
+
 
 #plot to show differences by lifestage since it was significant
 pca.forest.life <- rclr.forest %>%
@@ -350,7 +356,8 @@ rclr.open <- tax_transform(open, trans = "rclr") %>%
 
 #make sure things are in order
 rclr.open@sam_data$Lifestage <- factor(rclr.open@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
-rclr.open@sam_data$Treatment <- factor(rclr.open@sam_data$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
+rclr.open@sam_data$Treatment <- factor(rclr.open@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
+
 
 pca.open <- rclr.open %>%
   ord_plot(
@@ -440,66 +447,66 @@ ggplot2::ggsave(here::here("output/betas_open.png"), pca.open,
 #all
 disp_all <- betadisper(aitch.dist, aitch.sampledf$Habitat, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_all)) #disp not sig diff across all (p=0.854)
-stats_all <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Habitat, type = "centroid", 
+stats_all <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Habitat, type = "centroid", 
                                                            bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_all <- add_significance(stats_all, p.col = "x")
+stats_all <- add_significance(stats_all, p.col = "value")
 stats_all$comparisons <- "all"
 
 #habitat
 disp_habitat <- betadisper(aitch.dist, aitch.sampledf$Habitat, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_habitat)) #disp not sig diff across habitat (p=0.854)
-stats_habitat <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Habitat, type = "centroid", 
+stats_habitat <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Habitat, type = "centroid", 
                                                          bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_habitat <- add_significance(stats_habitat, p.col = "x")
+stats_habitat <- add_significance(stats_habitat, p.col = "value")
 stats_habitat$comparisons <- "Habitat"
 
-stats_habitat$group1 <- sapply(strsplit(stats_habitat$names, "-"), `[`,1)
-stats_habitat$group2 <- sapply(strsplit(stats_habitat$names, "-"), `[`,2)
+stats_habitat$group1 <- sapply(strsplit(stats_habitat$name, "-"), `[`,1)
+stats_habitat$group2 <- sapply(strsplit(stats_habitat$name, "-"), `[`,2)
 
 #Life
 disp_life <- betadisper(aitch.dist, aitch.sampledf$Lifestage, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_life)) #disp not sig diff across life (p=0.133)
-stats_life <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Lifestage, type = "centroid", 
+stats_life <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Lifestage, type = "centroid", 
                                                            bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_life <- add_significance(stats_life, p.col = "x")
+stats_life <- add_significance(stats_life, p.col = "value")
 stats_life$comparisons <- "Lifestage"
 
-stats_life$group1 <- sapply(strsplit(stats_life$names, "-"), `[`,1)
-stats_life$group2 <- sapply(strsplit(stats_life$names, "-"), `[`,2)
+stats_life$group1 <- sapply(strsplit(stats_life$name, "-"), `[`,1)
+stats_life$group2 <- sapply(strsplit(stats_life$name, "-"), `[`,2)
 
 #treatment
 disp_treatment <- betadisper(aitch.dist, aitch.sampledf$Treatment, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_treatment)) #sig across treatment (p=0.0304)
-stats_treatment <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Treatment, type = "centroid", 
+stats_treatment <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Treatment, type = "centroid", 
                                                              bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_treatment <- add_significance(stats_treatment, p.col = "x")
+stats_treatment <- add_significance(stats_treatment, p.col = "value")
 stats_treatment$comparisons <- "Treatment"
 
-stats_treatment$group1 <- sapply(strsplit(stats_treatment$names, "-"), `[`,1)
-stats_treatment$group2 <- sapply(strsplit(stats_treatment$names, "-"), `[`,2)
+stats_treatment$group1 <- sapply(strsplit(stats_treatment$name, "-"), `[`,1)
+stats_treatment$group2 <- sapply(strsplit(stats_treatment$name, "-"), `[`,2)
 
 
 #season
 disp_season <- betadisper(aitch.dist, aitch.sampledf$Season, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_season)) #sig across season (p=0.000227)
-stats_season <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Season, type = "centroid", 
+stats_season <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Season, type = "centroid", 
                                                              bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_season <- add_significance(stats_season, p.col = "x")
+stats_season <- add_significance(stats_season, p.col = "value")
 stats_season$comparisons <- "Season"
 
-stats_season$group1 <- sapply(strsplit(stats_season$names, "-"), `[`,1)
-stats_season$group2 <- sapply(strsplit(stats_season$names, "-"), `[`,2)
+stats_season$group1 <- sapply(strsplit(stats_season$name, "-"), `[`,1)
+stats_season$group2 <- sapply(strsplit(stats_season$name, "-"), `[`,2)
 
 #sex
 disp_sex <- betadisper(aitch.dist, aitch.sampledf$Sex, bias.adjust = TRUE, type = "centroid")
 broom::tidy(anova(disp_sex)) #sig across sex (p=0.761)
-stats_sex <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Sex, type = "centroid", 
+stats_sex <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist, aitch.sampledf$Sex, type = "centroid", 
                                                           bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_sex <- add_significance(stats_sex, p.col = "x")
+stats_sex <- add_significance(stats_sex, p.col = "value")
 stats_sex$comparisons <- "Sex"
 
-stats_sex$group1 <- sapply(strsplit(stats_sex$names, "-"), `[`,1)
-stats_sex$group2 <- sapply(strsplit(stats_sex$names, "-"), `[`,2)
+stats_sex$group1 <- sapply(strsplit(stats_sex$name, "-"), `[`,1)
+stats_sex$group2 <- sapply(strsplit(stats_sex$name, "-"), `[`,2)
 
 
 #combine dispersion results
@@ -513,25 +520,25 @@ stats_all$y.position <- 22
 ##forested season
 disp_forest_season <- betadisper(aitch.dist.forest, forest.sampledf$Season, bias.adjust = TRUE, type = "centroid")
 stats_forest_season <- broom::tidy(anova(disp_forest_season)) #disp still sig diff across season (p=0.002)
-stats_forest_season <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist.forest, forest.sampledf$Season, type = "centroid", 
+stats_forest_season <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist.forest, forest.sampledf$Season, type = "centroid", 
                                                        bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_forest_season <- add_significance(stats_forest_season, p.col = "x")
+stats_forest_season <- add_significance(stats_forest_season, p.col = "value")
 stats_forest_season$comparisons <- "forested"
 
-stats_forest_season$group1 <- sapply(strsplit(stats_forest_season$names, "-"), `[`,1)
-stats_forest_season$group2 <- sapply(strsplit(stats_forest_season$names, "-"), `[`,2)
+stats_forest_season$group1 <- sapply(strsplit(stats_forest_season$name, "-"), `[`,1)
+stats_forest_season$group2 <- sapply(strsplit(stats_forest_season$name, "-"), `[`,2)
 
 
 ##open season
 disp_open_season <- betadisper(aitch.dist.open, open.sampledf$Season, bias.adjust = TRUE, type = "centroid")
 stats_open_season <- broom::tidy(anova(disp_open_season)) #disp still sig diff across season (p=8.51E-06)
-stats_open_season <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist.open, open.sampledf$Season, type = "centroid", 
+stats_open_season <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist.open, open.sampledf$Season, type = "centroid", 
                                                                  bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_open_season <- add_significance(stats_open_season, p.col = "x")
+stats_open_season <- add_significance(stats_open_season, p.col = "value")
 stats_open_season$comparisons <- "open"
 
-stats_open_season$group1 <- sapply(strsplit(stats_open_season$names, "-"), `[`,1)
-stats_open_season$group2 <- sapply(strsplit(stats_open_season$names, "-"), `[`,2)
+stats_open_season$group1 <- sapply(strsplit(stats_open_season$name, "-"), `[`,1)
+stats_open_season$group2 <- sapply(strsplit(stats_open_season$name, "-"), `[`,2)
 
 
 #combine dispersion results
@@ -545,13 +552,13 @@ stats_habitat$y.position <- 23
 #and for open_treatment
 disp_open_treat <- betadisper(aitch.dist.open, open.sampledf$Treatment, bias.adjust = TRUE, type = "centroid")
 stats_open_treat <- broom::tidy(anova(disp_open_treat)) 
-stats_open_treat <- broom::tidy(p.adjust(permutest(betadisper(aitch.dist.open, open.sampledf$Treatment, type = "centroid", 
+stats_open_treat <- tibble::enframe(p.adjust(permutest(betadisper(aitch.dist.open, open.sampledf$Treatment, type = "centroid", 
                                                                bias.adjust = TRUE), pairwise=TRUE)$pairwise$permuted, method = 'fdr'))
-stats_open_treat <- add_significance(stats_open_treat, p.col = "x")
+stats_open_treat <- add_significance(stats_open_treat, p.col = "value")
 stats_open_treat$comparisons <- "open"
 
-stats_open_treat$group1 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,1)
-stats_open_treat$group2 <- sapply(strsplit(stats_open_treat$names, "-"), `[`,2)
+stats_open_treat$group1 <- sapply(strsplit(stats_open_treat$name, "-"), `[`,1)
+stats_open_treat$group2 <- sapply(strsplit(stats_open_treat$name, "-"), `[`,2)
 
 #write dispersion open stats
 colnames(stats_open_treat) <- c("comparison","p.adj","p.adj.signif","treatment","group1","group2")
@@ -570,8 +577,7 @@ disp_df$Treatment <- paste0(aitch.sampledf$Treatment)
 
 #get everything in order again
 disp_df$Lifestage <- factor(disp_df$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
-disp_df$Treatment <- factor(disp_df$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
-
+disp_df$Treatment <- factor(disp_df$Treatment, c("unburned", "burned", "managed", "unmanaged"), ordered = TRUE)
 
 #plot dispersion
 #do disp treatment first to match betas
@@ -612,7 +618,7 @@ plot_disp_life <- plot_disp_life + theme(axis.text = element_text(face = "bold",
                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                          axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
   guides(color = guide_legend(title = "Lifestage")) + theme(strip.text = element_text(face = "bold", size = 14))+
-  stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  #stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
   guides(color = guide_legend(title = "Lifestage", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
   theme(legend.box="vertical", legend.margin=margin())
 plot_disp_life
@@ -628,21 +634,22 @@ stats_forest_season$y.position <- 22
 
 
 #then plot
-plot_disp_season <-  ggplot(disp_df_forested, aes(x = Season, y = distances, color = Season))  + 
-  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
+plot_disp_season.forest <-  ggplot(disp_df_forested, aes(x = Season, y = distances, color = Season))  + 
+  geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)+
+  stat_pvalue_manual(stats_forest_season, label = "p.adj.signif", hide.ns = TRUE, size = 6, inherit.aes = FALSE)
 
-plot_disp_season <- plot_disp_season + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+plot_disp_season.forest <- plot_disp_season.forest + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
-plot_disp_season <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
+plot_disp_season.forest <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
                                          axis.title = element_text(face = "bold", size = 14), 
                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                          axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
   guides(color = guide_legend(title = "Season"), fill = guide_legend(label.theme = element_text(size = 10, lineheight = 0.8)))+
   theme(strip.text = element_text(face = "bold", size = 14))+
-  stat_pvalue_manual(stats_forest_season, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
+  stat_pvalue_manual(stats_forest_season, label = "p.adj.signif", hide.ns = TRUE, size = 6, inherit.aes = FALSE)+
   guides(color = guide_legend(title = "Season", keyheight = unit(3, "mm"))) +
   theme(legend.box="vertical", legend.margin=margin())
-plot_disp_season
+plot_disp_season.forest
 
 
 #subset to "open" habitat
@@ -656,12 +663,12 @@ stats_open_treat$y.position <- 21
 #then plot
 disp_df_open <- subset(disp_df, Habitat == "open")
 
-plot_disp_treat <-  ggplot(disp_df_open, aes(x = Treatment, y = distances, color = Treatment))  + 
+plot_disp_treat.open <-  ggplot(disp_df_open, aes(x = Treatment, y = distances, color = Treatment))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
-plot_disp_treat <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+plot_disp_treat.open <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
-plot_disp_open_treat <- plot_disp_treat + theme(axis.text = element_text(face = "bold", size = 14), 
+plot_disp_open_treat <- plot_disp_treat.open + theme(axis.text = element_text(face = "bold", size = 14), 
                                                   axis.title = element_text(face = "bold", size = 14), 
                                                   title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                                   axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
