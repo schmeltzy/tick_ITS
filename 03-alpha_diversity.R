@@ -68,6 +68,12 @@ write.csv(mod_shannon_pw2, here::here("output/pairwise_alpha_lifestage.csv"))
 alphadiv$Lifestage <- factor(alphadiv$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
 alphadiv$Treatment <- factor(alphadiv$Treatment, c("unmanaged", "burned", "mowed","unmowed"), ordered = TRUE)
 
+#change the variable names
+alphadiv$Treatment <- gsub("unmanaged", "unburned", alphadiv$Treatment)
+alphadiv$Treatment <- gsub("mowed", "managed", alphadiv$Treatment)
+alphadiv$Treatment <- gsub("unmowed", "unmanaged", alphadiv$Treatment)
+
+
 #make sig df
 sig.df <- mod_shannon_pw2
 
@@ -130,6 +136,8 @@ as.factor(sig.df$group2) -> sig.df$group2
 #skip first two rows since we can't span facets
 plot.sig.df <- tail(sig.df, -2)
 
+#relevel factors
+alphadiv$Treatment <- factor(alphadiv$Treatment, levels = c("unburned", "burned", "managed", "unmanaged"))
 
 plot.alpha <-  ggplot(alphadiv, aes(x = Lifestage, y = Shannon, color=Treatment)) + 
   geom_boxplot(lwd = 1.1, outlier.colour = "NA") + 
