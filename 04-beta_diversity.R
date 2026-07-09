@@ -666,7 +666,7 @@ disp_df_open <- subset(disp_df, Habitat == "open")
 plot_disp_treat.open <-  ggplot(disp_df_open, aes(x = Treatment, y = distances, color = Treatment))  + 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
-plot_disp_treat.open <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
+plot_disp_treat.open <- plot_disp_treat.open + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
 plot_disp_open_treat <- plot_disp_treat.open + theme(axis.text = element_text(face = "bold", size = 14), 
                                                   axis.title = element_text(face = "bold", size = 14), 
@@ -702,7 +702,7 @@ ggplot2::ggsave(here::here("output/pca_disp_forest_life.png"), pca_disp_forest_l
 
 
 #Dispersion 2 b
-ggarrange(pca.forest.season, plot_disp_season, nrow = 2, ncol = 1, common.legend = TRUE, legend = "top") -> pca_disp_forest_season
+ggarrange(pca.forest.season, plot_disp_season.forest, nrow = 2, ncol = 1, common.legend = TRUE, legend = "top") -> pca_disp_forest_season
 pca_disp_forest_season <-  annotate_figure(
   pca_disp_forest_season,
   top = ggpubr::text_grob("Forested\n", face = "bold", size = 14, lineheight = 0.9))
