@@ -7,7 +7,7 @@ library(dada2)
 library(ShortRead)
 library(Biostrings)
 library(DECIPHER)
-library(phangorn)
+#library(phangorn)
 library(here)
 
 #set seed for reproducibility

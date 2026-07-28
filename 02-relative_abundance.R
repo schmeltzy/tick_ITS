@@ -243,7 +243,7 @@ plot_open = ggplot(ps_trans_open_melt, aes(x = Lifestage, y=Abundance)) +
   geom_bar(stat="identity", position="fill", aes(fill = reorder(genus, Abundance))) +
   scale_fill_manual(values= colors, 
                     na.value = "transparent")  +
-  facet_grid(~Treatment+Season, scales = "free_x", space = "free_x") +
+  facet_grid(Treatment~Season, scales = "free_x", space = "free_x") +
   theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14), 
         axis.title = element_text(face = "bold", size = 14), 
@@ -286,7 +286,7 @@ tax_table(path.pruned) <- tax_table(as.matrix(tax_df))
 
 ## entomopathogen relative abundance figure
 plot.entos <- plot_bar(path.pruned, x="Lifestage", fill = "Genus") +
-  facet_wrap(~Treatment) +
+  facet_grid(~Treatment, scales = "free_x", space = "free_x") +
   geom_bar(stat="identity")+
   scale_fill_manual(values = sample_colors)
 plot.entos <- plot.entos + theme_bw(base_line_size = 1, base_rect_size = 1) +

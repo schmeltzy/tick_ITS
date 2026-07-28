@@ -6,6 +6,8 @@ library(readxl)
 library(tidyverse)
 library(vegan)
 library(FSA)
+library(microViz)
+library(here)
 
 #call up taxa and asv table from dada2 output
 taxa <- readRDS("taxa_both.rds")
