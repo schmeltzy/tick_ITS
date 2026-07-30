@@ -154,7 +154,8 @@ pca.all <- rclr %>%
     shape = "Habitat",
     plot_taxa = FALSE, 
     auto_caption = NA 
-  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("nickel_five")) +
+  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() +
+  scale_color_manual(values = friendly_pal("ito_seven")) +
   theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14), 
@@ -589,7 +590,7 @@ plot_disp_treat <-  ggplot(disp_df, aes(x = Treatment, y = distances, color = Tr
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
 plot_disp_treat <- plot_disp_treat + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
-  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("ito_seven"))
 plot_disp_treat <- plot_disp_treat + theme(axis.text = element_text(face = "bold", size = 14), 
                                axis.title = element_text(face = "bold", size = 14), 
                                title = element_text(face = "bold"), axis.title.x = element_text(face = "bold", color = "white"), 
@@ -667,7 +668,7 @@ plot_disp_treat.open <-  ggplot(disp_df_open, aes(x = Treatment, y = distances, 
   geom_boxplot(lwd = 1.25, outlier.colour = "NA") + theme_bw(base_line_size = 1.5, base_rect_size = 1.75)
 
 plot_disp_treat.open <- plot_disp_treat.open + geom_point(aes(color = Treatment), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
-  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("nickel_five"))
+  ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("ito_seven"))
 plot_disp_open_treat <- plot_disp_treat.open + theme(axis.text = element_text(face = "bold", size = 14), 
                                                   axis.title = element_text(face = "bold", size = 14), 
                                                   title = element_text(face = "bold"), axis.title.x = element_blank(), 

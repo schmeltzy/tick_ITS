@@ -139,9 +139,10 @@ plot.sig.df <- tail(sig.df, -2)
 #relevel factors
 alphadiv$Treatment <- factor(alphadiv$Treatment, levels = c("unburned", "burned", "managed", "unmanaged"))
 
+
 plot.alpha <-  ggplot(alphadiv, aes(x = Lifestage, y = Shannon, color=Treatment)) + 
   geom_boxplot(lwd = 1.1, outlier.colour = "NA") + 
-  scale_color_manual(values = friendly_pal("nickel_five"))+
+  scale_color_manual(values = friendly_pal("ito_seven"))+
   stat_pvalue_manual(plot.sig.df, label = "p.adj.signif", hide.ns = TRUE, inherit.aes = FALSE, size = 6)+
   geom_point(aes(color=Treatment), size = 1.5, alpha = 0.5, 
            position = position_jitterdodge(jitter.width = 0.1)) + 
