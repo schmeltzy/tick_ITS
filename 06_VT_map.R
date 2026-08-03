@@ -17,11 +17,28 @@ vt_state_prj <- st_transform(vt_state, 32145)
 vt_towns_prj <- st_transform(vt_towns, 32145)
 manchester_prj <- subset(vt_towns_prj, NAME == "Manchester")
 
+# NEW: Download roads for Bennington County (where Manchester is located)
+# The roads data is then reprojected and clipped strictly to Manchester's border
+bennington_roads <- roads(state = "VT", county = "Bennington")
+roads_prj <- st_transform(bennington_roads, 32145)
+manchester_roads <- st_intersection(roads_prj, manchester_prj)
+
+# NEW: Download linear water features (rivers/streams) for Bennington County & clip
+bennington_water_lines <- linear_water(state = "VT", county = "Bennington")
+water_lines_prj <- st_transform(bennington_water_lines, 32145)
+manchester_rivers <- st_intersection(water_lines_prj, manchester_prj)
+
+# NEW (Optional): Download area water features (lakes/ponds) for Bennington County & clip
+bennington_water_areas <- area_water(state = "VT", county = "Bennington")
+water_areas_prj <- st_transform(bennington_water_areas, 32145)
+manchester_lakes <- st_intersection(water_areas_prj, manchester_prj)
+
+
 # 2. Define specific Lat/Long sites in Manchester
 sites_df <- data.frame(
-  name = c("managed", "unmanaged", "burned","unburned"),
-  longitude = c(-73.07550, -73.076264, -73.077647, -73.075342),
-  latitude = c(43.14423, 43.142600, 43.131661, 43.131564)
+  name = c("managed", "unmanaged", "burned","unburned","Village of Manchester"),
+  longitude = c(-73.07550, -73.076264, -73.077647, -73.075342, -73.07111),
+  latitude = c(43.14423, 43.142600, 43.131661, 43.131564, 43.16111)
 )
 
 sites_sf <- st_as_sf(sites_df, coords = c("longitude", "latitude"), crs = 4326)
@@ -74,6 +91,16 @@ coord_sf(datum = st_crs(4326)) +
 # 4. Create Inset Map (with independent small-scale bar)
 p_inset <- ggplot() +
   geom_sf(data = manchester_prj, fill = "cornsilk", color = "grey50") +
+  
+  # NEW: Draw the underlying road street paths inside the town boundary
+  geom_sf(data = manchester_roads, color = "grey75", linewidth = 0.4) +
+  
+  # NEW: Draw linear river channels (Soft blue lines)
+  geom_sf(data = manchester_rivers, color = "skyblue3", linewidth = 0.3) +
+  
+  # NEW: Draw area water features like ponds/lakes (Soft blue fill shapes)
+  geom_sf(data = manchester_lakes, fill = "skyblue1", color = "skyblue3", linewidth = 0.2) +
+  
   geom_sf(data = sites_prj, aes(color = name), size = 2, show.legend = FALSE) +
   geom_label_repel(
     data = sites_prj,
@@ -81,7 +108,7 @@ p_inset <- ggplot() +
     box.padding = 0.5, point.padding = 0.3,
     segment.color = "grey30", segment.linewidth = 0.5, show.legend = FALSE
   ) +
-  scale_color_manual(values = c("managed" = "#009E73", "unmanaged" = "#CC79A7", "burned" = "#D55E00", "unburned" = "#0072B2")) +
+  scale_color_manual(values = c("managed" = "#009E73", "unmanaged" = "#CC79A7", "burned" = "#D55E00", "unburned" = "#0072B2", "Village of Manchester" = "black")) +
   # Add a highly localized scale bar inside Manchester town bounds
   annotation_scale(location = "tr", width_hint = 0.10) + 
   theme_void() +
