@@ -19,7 +19,7 @@ set.seed(123)
 ps.rare <- readRDS(here::here("output/ps.rare.rds"))
 
 #visualize alpha diversity just to make sure everything looks normal
-plot_richness(ps.rare, x="Treatment", measures=c("Shannon", "Chao1"), color="Lifestage")
+plot_richness(ps.rare, x="Treatment", measures=c("Shannon","Observed"), color="Lifestage")
 #+facet_grid(~Season)
 
 ####let's subset to just look at ticks (not soil)
@@ -28,13 +28,52 @@ plot_richness(ticks, x="Lifestage", measures=c("Shannon"), color="Treatment") +
   facet_grid(~Habitat+Season)
 
 #calculate shannon diversity (richness and evenness)
-alphadiv <- estimate_richness(ticks, measures = c("Shannon")) %>%
+alphadiv <- phyloseq::estimate_richness(ticks, measures = c("Shannon")) %>%
   rownames_to_column(var = "Unique_Specimen_ID") %>%
   left_join(as.data.frame(sample_data(ticks)), by = "Unique_Specimen_ID")
 
 #Look at distribution and test for normality
 hist(alphadiv$Shannon) #normal-ish
 shapiro.test(alphadiv$Shannon) #is normal W = 0.98223, p = 0.07, will move forward with linear model
+
+
+#=========================
+
+# 1. Broad Landscape Scale 
+global_model <- lm(Shannon ~ Habitat + Habitat:Treatment + Habitat:Season + Habitat:Treatment*Lifestage, data = alphadiv)
+shapiro.test(residuals(global_model)) #residuals normal
+
+global_lm_shan <- broom::tidy(anova(global_model)) # Habitat and Treatment and Lifestage interactions significant 
+global_lm_shan$Metric <- "Shannon"
+
+# 2. Micro Scale (To isolate effects within that single life stage)
+sex_model <- lm(Shannon ~ Habitat + Habitat:Treatment + Season + Sex, 
+                data = subset(alphadiv, Lifestage == "adult")) # Replace 'adult' if it's a different stage
+shapiro.test(residuals(sex_model)) #residuals normal
+
+sex_lm_shan <- broom::tidy(anova(sex_model)) # Sex NS
+sex_lm_shan$Metric <- "Shannon"
+
+#check out means across treatments and seasons
+emmip(global_model, Habitat ~ Treatment | Lifestage*Season)
+
+# pairwise comparisons
+global_mod_shannon_pw <- emmeans(global_model, pairwise ~ Treatment, adjust = "tukey") 
+global_mod_shannon_pw <- broom::tidy(global_mod_shannon_pw$contrasts)
+global_mod_shannon_pw <- rstatix::add_significance(data = as.data.frame(global_mod_shannon_pw), p.col = "adj.p.value")
+global_mod_shannon_pw$Metric <- "Shannon"
+
+global_mod_shannon_pw2 <- emmeans(global_model, pairwise ~ Treatment | Lifestage, adjust = "tukey") 
+global_mod_shannon_pw2 <- broom::tidy(global_mod_shannon_pw2$contrasts)
+global_mod_shannon_pw2 <- rstatix::add_significance(data = as.data.frame(global_mod_shannon_pw2), p.col = "adj.p.value")
+global_mod_shannon_pw2$Metric <- "Shannon"
+
+global_mod_shannon_pw3 <- emmeans(global_model,pairwise ~ Treatment + Season | Lifestage, adjust = "tukey") 
+global_mod_shannon_pw3 <- broom::tidy(global_mod_shannon_pw3$contrasts)
+global_mod_shannon_pw3 <- rstatix::add_significance(data = as.data.frame(global_mod_shannon_pw3), p.col = "adj.p.value")
+global_mod_shannon_pw3$Metric <- "Shannon"
+
+#========================
 
 
 # linear model shannon diversity
@@ -44,7 +83,7 @@ shapiro.test(residuals(mod.shannon)) # residuals normal
 glm_shan <- broom::tidy(anova(mod.shannon)) # Habitat and Treatment significant 
 glm_shan$Metric <- "Shannon"
 
-#check out means across lifestages
+#check out means across treatments
 emmip(mod.shannon, Habitat ~ Treatment | Lifestage)
 
 # pairwise comparisons

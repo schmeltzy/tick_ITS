@@ -87,11 +87,13 @@ vol_plot_all <- vol_plot_all + theme_bw(base_line_size = 1, base_rect_size = 1.5
         axis.title.y = element_blank(),
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold"),
+        legend.position = "top",
         legend.location = "plot",
-        legend.text = element_text(size = 11)) +
+        legend.text = element_text(face = "bold", size = 11)) +
   #xlab("Log Fold Change") + 
   #ylab("-log10 (adj. p-value)") +
   labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12)) 
+vol_plot_all
 
 #should probably save the figure
 
@@ -373,9 +375,16 @@ df_forest_life_pair <- subset(df_forest_life_pair, !(diff == "TRUE" & pass_sens 
 df_forest_life_pair$Genus <- factor(df_forest_life_pair$Genus, levels = c("Papiliotrema", "Unclassified Amphisphaeriales", "Vishniacozyma", "Other"))
 colors <- c("maroon", "#FFD300", "#1F9698", "lightgrey")
 
+#subset so we only see adult v. nymph
+df_forestadultnymph <- subset(df_forest_life_pair, comparison == "adult v. nymph")
+
+#label comparison to be just forest
+df_forestadultnymph <- df_forestadultnymph %>%
+  mutate(comparison = recode(comparison, "adult v. nymph" = "adult v. nymph (forest only)"))
+
 
 #and make our plot
-vol_plot_forest_life_pair <- df_forest_life_pair %>%
+vol_plot_forest_life_pair <- df_forestadultnymph %>%
   ggplot(aes(x = LFC,
              y = -log10(p.adj),
              color = Genus)) +
@@ -392,12 +401,15 @@ vol_plot_forest_life_pair <- vol_plot_forest_life_pair +
 vol_plot_forest_life_pair <- vol_plot_forest_life_pair + theme_bw(base_line_size = 1, base_rect_size = 1.5) +
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14),
+        axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         title = element_text(face = "bold")) +
   theme(legend.position = "top", legend.text = element_text(face = "bold", size = 10))+
-  xlab("Log Fold Change") +
+  #xlab("Log Fold Change") +
   #ylab("-log10 (adj. p-value)") +
   labs(color = 'Taxa') + theme(strip.text = element_text(face = "bold", size = 12))
+
+vol_plot_forest_life_pair
 
 write.csv(df_forest_life_pair, here::here("output/diffabund_forest_life.csv"))
 
@@ -551,17 +563,23 @@ ggplot2::ggsave(here::here("output/plot_diffabund_open_treat.png"), vol_plot_ope
 #get rid of x-axis title on 2nd fig
 #add Papiliotrema and its color to main fig
 #get rid of y axis title on all figs
-diffabund_main_combo <- ggarrange(vol_plot_all, vol_plot_treatment, vol_plot_forest_life_pair,
-                                  nrow = 3, ncol = 1,
+diffabund_main_combo <- ggarrange(vol_plot_all, vol_plot_forest_life_pair,
+                                  nrow = 1, ncol = 2,
                                   #widths = c(1, 0.12, 1, 0.12, 1),  # <- increase 0.06 for larger gaps
                                   common.legend = TRUE, legend = "top")
 #add common y-axis
 diffabund_main_combo <- annotate_figure(diffabund_main_combo,
                                         left = text_grob("-log10 (adj. p-value)", face = "bold", color = "black", rot = 90, size = 16))
+
+diffabund_main_combo <- annotate_figure(
+  diffabund_main_combo,
+  bottom = text_grob("Log Fold Change", color = "black", size = 14, face = "bold")
+)
 diffabund_main_combo
 
 ggplot2::ggsave(here::here("output/plot_diffabund_main_combo.png"), diffabund_main_combo,
                 height = 500, width = 500, units = "mm",
                 scale = 0.5, dpi = 1000)
+
 
 

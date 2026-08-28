@@ -26,9 +26,27 @@ ps@sam_data$Treatment <- gsub("unmowed", "unmanaged", ps@sam_data$Treatment)
 
 ###let's subset to just look at ticks (not soil)
 ticks <- subset_samples(ps, Type=="BLT")
-#and ticks by habitat type
+
+##make another column with "groups"
+# Extract sample data as a standard data frame
+metadata <- data.frame(sample_data(ticks))
+
+# Combine columns into a new column called 'Group'
+metadata$Groups <- paste(metadata$Lifestage, metadata$Season, sep = "-")
+
+# Assign the updated data frame back into the phyloseq object
+sample_data(ticks) <- sample_data(metadata)
+
+#and subset ticks by habitat type
 forest <- subset_samples(ticks, Habitat=="forested")
 open <- subset_samples(ticks, Habitat=="open")
+
+#and also make a subset for just adults
+adults <- subset_samples(ticks, Lifestage=="adult")
+
+# and just spring forest
+#and also make a subset for just adults
+spring.forest <- subset_samples(forest, Season=="spring")
 
 # does habitat, treatment, lifestage, season, or sex affect beta diversity?
 #use aitchison distance for beta (clr transform followed by euclidean distance matrix)
@@ -144,14 +162,26 @@ write.csv(pair.open.treatment, here:: here("output/pair_open.treatment.csv"))
 rclr <- tax_transform(ticks, trans = "rclr") %>%
   ord_calc(method = "PCA")
 
+rclr.adults <- tax_transform(adults, trans = "rclr") %>%
+  ord_calc(method = "PCA")
+
+rclr.springforest <- tax_transform(spring.forest, trans = "rclr") %>%
+  ord_calc(method = "PCA")
+
 #make sure things are in order
 rclr@sam_data$Lifestage <- factor(rclr@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
 rclr@sam_data$Treatment <- factor(rclr@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
 
+rclr.adults@sam_data$Treatment <- factor(rclr.adults@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
+
+rclr.springforest@sam_data$Lifestage <- factor(rclr.springforest@sam_data$Lifestage, c("larva", "nymph", "adult"), ordered = TRUE)
+rclr.springforest@sam_data$Treatment <- factor(rclr.springforest@sam_data$Treatment, c("unburned", "burned", "managed","unmanaged"), ordered = TRUE)
+
+
 pca.all <- rclr %>%
   ord_plot( 
     colour = "Treatment",
-    shape = "Habitat",
+    shape = "Lifestage",
     plot_taxa = FALSE, 
     auto_caption = NA 
   ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() +
@@ -161,10 +191,33 @@ pca.all <- rclr %>%
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   theme(strip.text = element_text(face = "bold", size = 14)) +
+  #facet_wrap(~Season)+
   guides(color = guide_legend(title = "Treatment")) + theme(legend.position = "right")
-# facet_wrap(~Lifestage)
 # + theme(legend.position = c(0.8, 0.08)) + theme(legend.key.size = unit(1, "mm")) +
 pca.all
+
+### just to try
+
+# pca.spring.forest <- rclr.springforest %>%
+#   ord_plot( 
+#     colour = "Lifestage",
+#     shape = "Treatment",
+#     plot_taxa = FALSE, 
+#     auto_caption = NA 
+#   ) + stat_ellipse(aes(group = Lifestage, color = Lifestage), linewidth = 1.5) + theme_bw() +
+#   scale_color_manual(values = friendly_pal("retro_four")) +
+#   theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
+#   theme(axis.text = element_text(face = "bold", size = 14),
+#         axis.title = element_text(face = "bold", size = 14), 
+#         title = element_text(face = "bold")) +
+#   theme(strip.text = element_text(face = "bold", size = 14)) +
+#   facet_wrap(~Treatment)+
+#   guides(color = guide_legend(title = "Lifestage")) + theme(legend.position = "right")
+# # + theme(legend.position = c(0.8, 0.08)) + theme(legend.key.size = unit(1, "mm")) +
+# pca.spring.forest
+
+
+###
 
 ##overlay dispersion vectors
 #overlay forest dispersion vectors
@@ -226,7 +279,7 @@ rclr.forest@sam_data$Treatment <- factor(rclr.forest@sam_data$Treatment, c("unbu
 #plot to show differences by lifestage since it was significant
 pca.forest.life <- rclr.forest %>%
   ord_plot(
-    shape = "Treatment",
+    shape = "Season",
     colour = "Lifestage",
     plot_taxa = FALSE, 
     auto_caption = NA 
@@ -236,6 +289,7 @@ pca.forest.life <- rclr.forest %>%
         axis.title = element_text(face = "bold", size = 14), 
         title = element_text(face = "bold")) +
   theme(strip.text = element_text(face = "bold", size = 14)) +
+  #facet_grid(~Season)+
   guides(color = guide_legend(title = "Lifestage", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
   theme(legend.box="vertical", legend.margin=margin())
 pca.forest.life
@@ -366,7 +420,7 @@ pca.open <- rclr.open %>%
     colour = "Treatment",
     plot_taxa = FALSE, 
     auto_caption = NA 
-  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("nickel_five")) +
+  ) + stat_ellipse(aes(group = Treatment, color = Treatment), linewidth = 1.5) + theme_bw() + scale_color_manual(values = friendly_pal("ito_seven")) +
   theme_bw(base_line_size = 1.5, base_rect_size = 1) + 
   theme(axis.text = element_text(face = "bold", size = 14),
         axis.title = element_text(face = "bold", size = 14), 
@@ -622,6 +676,7 @@ plot_disp_life <- plot_disp_life + theme(axis.text = element_text(face = "bold",
   #stat_pvalue_manual(stats_life, label = "p.adj.signif", hide.ns = TRUE, size = 6)+
   guides(color = guide_legend(title = "Lifestage", keyheight = unit(3, "mm"))) + theme(legend.position = "top")+
   theme(legend.box="vertical", legend.margin=margin())
+  #facet_grid(~Season)
 plot_disp_life
 
 
@@ -641,7 +696,7 @@ plot_disp_season.forest <-  ggplot(disp_df_forested, aes(x = Season, y = distanc
 
 plot_disp_season.forest <- plot_disp_season.forest + geom_point(aes(color = Season), alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1)) +
   ylab("Distance to Centroid") + scale_color_manual(values = friendly_pal("zesty_four"))
-plot_disp_season.forest <- plot_disp_season + theme(axis.text = element_text(face = "bold", size = 14), 
+plot_disp_season.forest <- plot_disp_season.forest + theme(axis.text = element_text(face = "bold", size = 14), 
                                          axis.title = element_text(face = "bold", size = 14), 
                                          title = element_text(face = "bold"), axis.title.x = element_blank(), 
                                          axis.text.x = element_text(face = "bold", size = 12), axis.ticks.x = element_blank()) + 
@@ -734,3 +789,4 @@ plot(pca_dispersion_combo)
 ggplot2::ggsave(here::here("output/pca_dispersion_combo.png"), pca_dispersion_combo,
                 height = 450, width = 600, units = "mm",
                 scale = 0.5, dpi = 1000) #combo plot of PCAs and dispersion results for significant betas
+

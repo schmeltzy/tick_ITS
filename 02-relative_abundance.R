@@ -16,6 +16,10 @@ set.seed(123)
 
 
 ## load phyloseq object
+ps <- readRDS(here::here("output/og.ps.rds"))
+ps.rare <- rarefy_even_depth(ps, sample.size = 2008, rngseed = 999) #97 ASVs removed, 16 samples removed
+saveRDS(ps.rare, here::here("output/ps.rare.rds"))
+
 ps.rare <- readRDS(here::here("output/ps.rare.rds"))
 
 
@@ -275,8 +279,15 @@ ps.pathogens <- subset_taxa(ps.trans, Genus == "Metarhizium" |
 #trim samples to just get the ones with entos
 path.pruned <- prune_samples(sample_sums(ps.pathogens@otu_table) > 0, ps.pathogens)
 
-#put treatments in order for the plot
-path.pruned@sam_data$Treatment <- factor(path.pruned@sam_data$Treatment, levels = c("unmowed", "mowed","unmanaged"))
+#put treatments and lifestage in order for the plot (first need to change the names and then relevel)
+sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "unmanaged"] <- "unburned"
+sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "unmowed"] <- "unmanaged"
+sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "mowed"] <- "managed"
+
+path.pruned@sam_data$Treatment <- factor(path.pruned@sam_data$Treatment, levels = c("unmanaged","managed","unburned"))
+path.pruned@sam_data$Lifestage <- factor(path.pruned@sam_data$Lifestage, levels = c("larva","nymph","adult"))
+
+
 #add column for taxon ID with genus+species info
 tax_df <- as.data.frame(tax_table(path.pruned))
 
