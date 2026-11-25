@@ -38,6 +38,7 @@ sample_sums(ps.trans)
 ps.trans <- name_na_taxa(ps.trans, include_rank = FALSE, na_label = "Unclassified <tax>")
 tax_table(ps.trans)
 
+
 #make a quick lil plot of things glommed by Phylum
 
 #sample colors
@@ -53,10 +54,13 @@ plot_bar(ps.phy, fill = "Phylum") +
 top30 <- names(sort(taxa_sums(ps.trans), decreasing = TRUE))[1:30] 
 ps.top30 <- prune_taxa(top30, ps.trans)
 
+#make individual tickID a factor
+ps.top30@sam_data$Specimen_ID <- as.factor(ps.top30@sam_data$Specimen_ID)
+
 ## Plot relative abundance ====
 ps.top30 <- tax_glom(ps.top30, taxrank = "Family", NArm = FALSE)
 
-plot.relAbund <- plot_bar(ps.top30, x="Sample", fill="Family") +
+plot.relAbund <- plot_bar(ps.top30, x="Specimen_ID", fill="Family") +
   #facet_grid(vars(Habitat), scales = "free_x") + 
   scale_fill_manual(values = tol12) 
 plot.relAbund <- plot.relAbund + theme_bw(base_line_size = 1, base_rect_size = 1.5) + 
