@@ -10,6 +10,7 @@ library(ggpubfigs)
 library(dplyr)
 library(rstatix)
 library(broom)
+library(tidyr)
 
 #set seed for reproducibility
 set.seed(123)
@@ -42,7 +43,7 @@ tax_table(ps.trans)
 #make a quick lil plot of things glommed by Phylum
 
 #sample colors
-sample_colors <- c("#4E79A7","#F28E2B","#E15759","#76B7B2","#59A14F","#EDC948","#B07AA1","#FF9DA7","#9C755F","darkblue","#BAB0AC")
+sample_colors <- c("#4E79A7","#F28E2B","#E15759","#76B7B2","#59A14F","#EDC948","#B07AA1","#FF9DA7","#9C755F","darkblue","#BAB0AC","#AA4499","#661100","black")
 tol12 <- c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", 
            "#DDCC77", "#661100", "#CC6677", "#AA4499", "#882255", "#CCBB44","black") 
 
@@ -274,21 +275,44 @@ ggplot2::ggsave(here::here("output/plot_open_relabund.png"), plot_open,
 
 ## Let's try to just look at some of the entomopathogens
 ## Subset into the 4 we know about (mostly)
-ps.pathogens <- subset_taxa(ps.trans, Genus == "Metarhizium" | 
-                              Genus == "Beauveria" | 
-                              Genus == "Lecanicillium" |
-                              Genus == "Cordyceps" |
-                              Genus == "Paecilomyces" )
+##change for revisions to look at higher taxonomic level
+
+#ps.pathogens <- subset_taxa(ps.trans, Order == "Hypocreales")
+#let's do specific Hypocreales families first
+## need to update taxon info for Paecilomyces because it was recently moved into Hypocreales
+
+tax <- as(tax_table(ps.trans), "matrix")
+idx <- which(tax[, "Genus"] == "Paecilomyces")
+#update Class, Order, and Family for those rows
+tax[idx, "Class"]  <- "Sordariomycetes"
+tax[idx, "Order"]  <- "Hypocreales"
+tax[idx, "Family"] <- "Clavicipitaceae"
+
+#reassign back to the phyloseq object
+tax_table(ps.trans) <- tax_table(tax)
+
+
+ps.pathogens <- subset_taxa(ps.trans, Family == "Cordycipitaceae" |
+                              Family == "Ophiocordycipitaceae" |
+                              Family == "Clavicipitaceae")
+
+# ps.pathogens <- subset_taxa(ps.trans, Genus == "Metarhizium" | 
+#                               Genus == "Beauveria" | 
+#                               Genus == "Lecanicillium" |
+#                               Genus == "Cordyceps" |
+#                               Genus == "Paecilomyces" )
 
 #trim samples to just get the ones with entos
 path.pruned <- prune_samples(sample_sums(ps.pathogens@otu_table) > 0, ps.pathogens)
 
 #put treatments and lifestage in order for the plot (first need to change the names and then relevel)
 sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "unmanaged"] <- "unburned"
+#sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "burned"] <- "burned"
 sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "unmowed"] <- "unmanaged"
 sample_data(path.pruned)$Treatment[sample_data(path.pruned)$Treatment == "mowed"] <- "managed"
 
-path.pruned@sam_data$Treatment <- factor(path.pruned@sam_data$Treatment, levels = c("unmanaged","managed","unburned"))
+
+path.pruned@sam_data$Treatment <- factor(path.pruned@sam_data$Treatment, levels = c("unmanaged","managed","unburned","burned"))
 path.pruned@sam_data$Lifestage <- factor(path.pruned@sam_data$Lifestage, levels = c("larva","nymph","adult"))
 
 
@@ -333,13 +357,15 @@ melt %>%
 
 ## let's compare mean relative abundance of entomopathogens by Lifestage, Habitat, Treatment, Sex, Season
 
-kw_Season <- broom::tidy(kruskal.test(Abundance ~ Season, data = melt)) #sig
+kw_Season <- broom::tidy(kruskal.test(Abundance ~ Season, data = melt)) #NS
 kw_Season$var <- "season"
 
-kw_Treatment <- broom::tidy(kruskal.test(Abundance ~ Treatment, data = melt)) #NS
+kw_Treatment <- broom::tidy(kruskal.test(Abundance ~ Treatment, data = melt)) #sig
 kw_Treatment$var <- "treatment"
+dunn_Treatment <- as.data.frame(dunn_test(Abundance ~ Treatment, data = melt, p.adjust.method = "fdr")) # which
+dunn_Treatment$var <- "treatment"
 
-kw_Habitat <- broom::tidy(kruskal.test(Abundance ~ Habitat, data = melt)) #NS
+kw_Habitat <- broom::tidy(kruskal.test(Abundance ~ Habitat, data = melt)) #ALMOST sig
 kw_Habitat$var <- "Habitat"
 
 kw_Sex <- broom::tidy(kruskal.test(Abundance ~ Sex, data = melt)) #NS
@@ -347,7 +373,7 @@ kw_Sex$var <- "sex"
 
 kw_Lifestage <- broom::tidy(kruskal.test(Abundance ~ Lifestage, data = melt)) #sig
 kw_Lifestage$var <- "lifestage"
-dunn_Lifestage <- as.data.frame(dunn_test(Abundance ~ Lifestage, data = melt, p.adjust.method = "fdr")) # all vs. all sig
+dunn_Lifestage <- as.data.frame(dunn_test(Abundance ~ Lifestage, data = melt, p.adjust.method = "fdr")) # double check (2 sig 1 NS)
 dunn_Lifestage$var <- "lifestage"
 
 
