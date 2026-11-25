@@ -79,6 +79,13 @@ ps
 ps <- prune_taxa(taxa_sums(ps@otu_table) > 0, ps) # 1575 total taxa
 sum(sample_sums(ps)) # 1165175 total reads
 
+#add column with combined groupings of habitat and treatment for later stats
+metadata <- data.frame(sample_data(ps))
+metadata <- metadata %>%
+  unite("combined_groups", Habitat, Treatment, sep = "_", remove = FALSE)
+sample_data(ps) <- sample_data(metadata)
+
+
 #save phyloseq object
 saveRDS(ps, "phyloseq_obj.rds")
 
